@@ -387,10 +387,16 @@ test "readFromFen" {
 // zobrist testing ------------------------------------------------------------------------
 // yay ------------------------------------------------------------------------------------
 test "zobrist initZobristKey" {
-    var board = Board.emptyBoard();
-    const expected = 0xFC39D9B6B1436509 ^ 0xA6501ADC53C50F4C ^ 0x496D4DE4553BBC81;
-    board.piece_bb[0][0] = 0b11;
-    board.state.turn = Side.Black;
+    var board = Board.init();
+    const expected = 0xE7A6167E282C7201 ^ 0x317AFB4107F788D3 ^ 0x4B235F6B9172C839 ^ 0xB1F49FEA387D45D1 ^
+        0x85DDD8ABD2FC435F ^ 0x24BCBC736277D7C3 ^ 0x855DE6528BF67EFB ^ 0xAF739F9F79DBDB97 ^
+        0xCE9FBF4C3A721D00 ^ 0x3438D5E6E96BC405 ^ 0x7DA23D707E90C1DB ^ 0xF0605D4C82AC3129 ^
+        0x2A9203832E9E8A8D ^ 0x16313560D8BC84CE ^ 0x21257FA9660B1186 ^ 0x65924767BFA36402 ^
+        0x54B11937A8886E6C ^ 0x7711134EF4E14493 ^ 0xCE9385C80B7DD1A5 ^ 0x2CEE645A2936BB50 ^
+        0x1067593163606DFC ^ 0xFF947D4B5F6C4A4A ^ 0x9A415DE43380EC14 ^ 0x37B59B894C9624F3 ^
+        0xF334F446B4ED0209 ^ 0xA46E81289F031C70 ^ 0x5E7C93F7A4EA3A7D ^ 0xE628F22BA305A1ED ^
+        0xF313072B0907BA1F ^ 0xFAE8EFA7C13495E2 ^ 0xFE9BE7FE9C025FBE ^ 0x8F62C7BC8EDA9A20 ^
+        0x3B7CF67F6FB9BCBB ^ 0x5ED6CFE1AB8C3CD2;
     zobrist.initZobristKey(&board);
     try std.testing.expectEqual(expected, board.state.key);
 }
