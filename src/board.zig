@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const BitBoard = @import("board/bitboard.zig").BitBoard;
+const zobrist = @import("board/zobrist.zig");
 
 const types = @import("board/types.zig");
 const Side = types.Side;
@@ -21,6 +22,8 @@ pub const NUM_SIDE = 2;
 pub const NUM_PIECE_TYPE = 6;
 pub const NUM_SQUARES = 64;
 
+pub const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
 pub const BState = struct {
     turn: Side,
     castling_rights: u8,
@@ -28,6 +31,7 @@ pub const BState = struct {
     half_move_clock: u8,
     full_move_clock: u16,
     next_move: ?Move = null,
+    key: u64,
 };
 
 pub const Board = struct {
@@ -35,6 +39,10 @@ pub const Board = struct {
     side_bb: [NUM_SIDE]BitBoard,
     state: BState,
     state_stack: StateStack = .{},
+
+    pub fn init() Board {
+        return Board.readFromFen(STARTING_FEN);
+    }
 
     fn emptyBoard() Board {
         var piece_bb: [NUM_SIDE][NUM_PIECE_TYPE]BitBoard = undefined;
@@ -45,11 +53,12 @@ pub const Board = struct {
         }
         const side_bb = [_]BitBoard{ 0, 0 };
         const state = BState{
-            .turn = Side.None,
+            .turn = Side.White,
             .castling_rights = 0,
             .en_passant = null,
             .half_move_clock = 0,
             .full_move_clock = 0,
+            .key = 0,
         };
         return .{
             .piece_bb = piece_bb,
@@ -71,6 +80,7 @@ pub const Board = struct {
             board.state.half_move_clock = 0;
             board.state.full_move_clock = 1;
         }
+        zobrist.initZobristKey(&board);
         return board;
     }
 
@@ -372,4 +382,15 @@ test "readFromFen" {
     try std.testing.expectEqual(0b00001111, board.state.castling_rights);
     try std.testing.expectEqual(1, board.state.full_move_clock);
     try std.testing.expect(board.state.en_passant == null);
+}
+
+// zobrist testing ------------------------------------------------------------------------
+// yay ------------------------------------------------------------------------------------
+test "zobrist initZobristKey" {
+    var board = Board.emptyBoard();
+    const expected = 0xFC39D9B6B1436509 ^ 0xA6501ADC53C50F4C ^ 0x496D4DE4553BBC81;
+    board.piece_bb[0][0] = 0b11;
+    board.state.turn = Side.Black;
+    zobrist.initZobristKey(&board);
+    try std.testing.expectEqual(expected, board.state.key);
 }
