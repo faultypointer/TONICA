@@ -40,10 +40,10 @@ pub const Board = struct {
         var piece_bb: [NUM_SIDE][NUM_PIECE_TYPE]BitBoard = undefined;
         for (0..NUM_SIDE) |j| {
             for (0..NUM_PIECE_TYPE) |i| {
-                piece_bb[j][i] = BitBoard.init(0);
+                piece_bb[j][i] = 0;
             }
         }
-        const side_bb = [_]BitBoard{ BitBoard.init(0), BitBoard.init(0) };
+        const side_bb = [_]BitBoard{ 0, 0 };
         const state = BState{
             .turn = Side.None,
             .castling_rights = 0,
@@ -141,7 +141,7 @@ pub const Board = struct {
                     const piece_idx: usize = @intFromEnum(exists);
                     const shift: u6 = @truncate((7 - count_rank) * 8 + count_file);
                     const one: u64 = 1;
-                    board.piece_bb[side_idx][piece_idx].board |= one << shift;
+                    board.piece_bb[side_idx][piece_idx] |= one << shift;
                     count_file += 1;
                     // std.debug.print("type:{any}\tcolor: {any}\tshifted: {}\n", .{ exists, side.?, shift });
                 }
@@ -155,7 +155,7 @@ pub const Board = struct {
         }
         for (board.piece_bb, &board.side_bb) |pieces, *side| {
             for (pieces) |piece| {
-                side.board |= piece.board;
+                side.* |= piece;
             }
         }
     }
@@ -242,42 +242,42 @@ test "readFenPosition valid" {
     // Check bitboards for initial position
     // Black pieces
     // std.debug.print("{X}\n", .{board.piece_bb[1][4].board});
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Rook)].board == 0x8100000000000000);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Knight)].board == 0x4200000000000000);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Bishop)].board == 0x2400000000000000);
-    try std.testing.expectEqual(0x0800000000000000, board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Queen)].board);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.King)].board == 0x1000000000000000);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Pawn)].board == 0x00ff000000000000);
-    try std.testing.expectEqual(0xffff000000000000, board.side_bb[@intFromEnum(Side.Black)].board);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Rook)] == 0x8100000000000000);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Knight)] == 0x4200000000000000);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Bishop)] == 0x2400000000000000);
+    try std.testing.expectEqual(0x0800000000000000, board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Queen)]);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.King)] == 0x1000000000000000);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Pawn)] == 0x00ff000000000000);
+    try std.testing.expectEqual(0xffff000000000000, board.side_bb[@intFromEnum(Side.Black)]);
 
     // White pieces
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Rook)].board == 0x0000000000000081);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Knight)].board == 0x0000000000000042);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Bishop)].board == 0x0000000000000024);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Queen)].board == 0x0000000000000008);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.King)].board == 0x0000000000000010);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Pawn)].board == 0x000000000000ff00);
-    try std.testing.expectEqual(0xffff, board.side_bb[@intFromEnum(Side.White)].board);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Rook)] == 0x0000000000000081);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Knight)] == 0x0000000000000042);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Bishop)] == 0x0000000000000024);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Queen)] == 0x0000000000000008);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.King)] == 0x0000000000000010);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Pawn)] == 0x000000000000ff00);
+    try std.testing.expectEqual(0xffff, board.side_bb[@intFromEnum(Side.White)]);
 
     // Test 2: Valid FEN string for a end-game position
     board = Board.emptyBoard(); // Reset the board
     board.readFenPosition("8/b1kpq3/2P1P3/2n5/1R2Q3/8/3K4/8");
 
     // Black pieces
-    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Rook)].board, 0);
-    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Knight)].board, 0x0000000400000000);
-    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Bishop)].board, 0x0001000000000000);
-    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Queen)].board, 0x0010000000000000);
-    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.King)].board, 0x0004000000000000);
-    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Pawn)].board, 0x0008000000000000);
+    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Rook)], 0);
+    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Knight)], 0x0000000400000000);
+    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Bishop)], 0x0001000000000000);
+    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Queen)], 0x0010000000000000);
+    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.King)], 0x0004000000000000);
+    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Pawn)], 0x0008000000000000);
 
     // White pieces
-    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Rook)].board, 0x0000000002000000);
-    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Knight)].board, 0);
-    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Bishop)].board, 0);
-    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Queen)].board, 0x0000000010000000);
-    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.King)].board, 0x0000000000000800);
-    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Pawn)].board, 0x0000140000000000);
+    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Rook)], 0x0000000002000000);
+    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Knight)], 0);
+    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Bishop)], 0);
+    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Queen)], 0x0000000010000000);
+    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.King)], 0x0000000000000800);
+    try std.testing.expectEqual(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Pawn)], 0x0000140000000000);
 }
 
 test "readFenSideToMove" {
@@ -352,20 +352,20 @@ test "readFenMove" {
 
 test "readFromFen" {
     const board = Board.readFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Rook)].board == 0x8100000000000000);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Knight)].board == 0x4200000000000000);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Bishop)].board == 0x2400000000000000);
-    try std.testing.expectEqual(0x0800000000000000, board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Queen)].board);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.King)].board == 0x1000000000000000);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Pawn)].board == 0x00ff000000000000);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Rook)] == 0x8100000000000000);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Knight)] == 0x4200000000000000);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Bishop)] == 0x2400000000000000);
+    try std.testing.expectEqual(0x0800000000000000, board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Queen)]);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.King)] == 0x1000000000000000);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.Black)][@intFromEnum(PieceType.Pawn)] == 0x00ff000000000000);
 
     // White pieces
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Rook)].board == 0x0000000000000081);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Knight)].board == 0x0000000000000042);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Bishop)].board == 0x0000000000000024);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Queen)].board == 0x0000000000000008);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.King)].board == 0x0000000000000010);
-    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Pawn)].board == 0x000000000000ff00);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Rook)] == 0x0000000000000081);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Knight)] == 0x0000000000000042);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Bishop)] == 0x0000000000000024);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Queen)] == 0x0000000000000008);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.King)] == 0x0000000000000010);
+    try std.testing.expect(board.piece_bb[@intFromEnum(Side.White)][@intFromEnum(PieceType.Pawn)] == 0x000000000000ff00);
 
     try std.testing.expectEqual(0, board.state.half_move_clock);
     try std.testing.expectEqual(Side.White, board.state.turn);
