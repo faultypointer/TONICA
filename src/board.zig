@@ -17,8 +17,9 @@ pub const Castling_WQ: u8 = 0b00000010;
 pub const Castling_BK: u8 = 0b00000100;
 pub const Castling_BQ: u8 = 0b00001000;
 
-pub const NUM_SIDE: usize = 2;
-pub const NUM_PIECE_TYPE: usize = 6;
+pub const NUM_SIDE = 2;
+pub const NUM_PIECE_TYPE = 6;
+pub const NUM_SQUARES = 64;
 
 pub const BState = struct {
     turn: Side,
