@@ -95,10 +95,9 @@ test "promotionType" {
     try std.testing.expectEqual(PieceType.Queen, move.promotionType());
 }
 
-pub const Side = enum(u2) {
+pub const Side = enum {
     White,
     Black,
-    None,
 };
 
 pub const PieceType = enum(u3) {
