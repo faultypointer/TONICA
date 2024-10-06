@@ -16,7 +16,7 @@ pub fn initZobristKey(board: *Board) void {
             var bb = board.piece_bb[i_side][i_piece];
             while (bb != 0) {
                 const loc = bitboard.removeLS1B(&bb);
-                const rand_idx: usize = (i_side * i_piece) * 64 + loc;
+                const rand_idx: usize = i_side * PIECE_COLOR_RANDOM_OFFSET + i_piece * 64 + loc;
                 key ^= ZOBRIST_RANDOMS[rand_idx];
             }
         }
@@ -49,11 +49,11 @@ pub fn initZobristKey(board: *Board) void {
 // for side to move: side_offset + int_from_side_enum;
 // for castling rights: offset + castling_rights (which is a nibble so 16 randoms)
 // for en-passant: offset + int_from_square_enum
-// pub const PIECE_RANDOM_OFFSET = 0;
 //
 // !!NOTE!! I am currently using all 64 squares for enpassant when in reality only 16 squares are
 // enpassant square. and since only one enpassant square is possible at a time realistically
 // only 8 randoms are required one for each file so maybe thats a TODO?
+pub const PIECE_COLOR_RANDOM_OFFSET = 384;
 pub const SIDE_RANDOM_OFFSET = 768;
 pub const CASTLING_RANDOM_OFFSET = 770;
 pub const ENPASSANT_RANDOM_OFFSET = 786;
