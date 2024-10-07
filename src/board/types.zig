@@ -1,99 +1,85 @@
 const std = @import("std");
+const testing = std.testing;
 
-// flags store the following information
-// 00000000
-// ||||||||-> [en passant]: is set if an en passant capture becomes possible because of this Move
-// |||||||--> [Capture]: set if the move is capture
-// ||||||---> [Promotion]: set if the move is a Promotion
-// ||+++----> [Promotion type]: if the move is Promotion these 3 bits denote the type the pawn
-//                              promotes to according to PieceType enum
-//                              Bishop -> 001
-//                              Knight -> 010
-//                              Rook   -> 011
-//                              Queen  -> 100
+// data store the following information
+// |---------------------------------------------------------------------------|
+// | 0000 000(7) | 0  | 00 | 0  | 0  | 0  | 0  | 000 | 000 | 0000 00 | 00 0000 |
+// | not using   | PF | PT | CS | CF | EN | DS | CAP | PCE | TO      | FROM    |
+// |---------------------------------------------------------------------------|
+//               |                |
+//      PF       | Promotion Flag | set if the move is a promotion
+//      PT       | Promotion Type | type of piece promoted to
+//      CS       | Castling       | if the move is Castling
+//      CF       | Captured Flag  | if the move is a capture
+//      EN       | Enpassant      | if the move is enpassant capture
+//      DS       | Double step    | if the move is a double push by pawn
+//      CAP      | Captured piece | the type of piece captured if any
+//      PCE      | Piece          | the type of the piece that made the move
+//      TO       | TO Square      | which square the piece moved to
+//      FROM     | From Square    | which square the piece moved from
+//
+
+// some flags to get what i want
+const FROM_FLAG = 0b111111;
+const TO_FLAG = FROM_FLAG << 6;
+const PIECE_FLAG = 0b111 << 12;
+const CAP_FLAG = PIECE_FLAG << 3;
+const DS_FLAG = 1 << 18;
+const EN_FLAG = DS_FLAG << 1;
+const CF_FLAG = EN_FLAG << 1;
+const CS_FLAG = CF_FLAG << 1;
+const PT_FLAG = 0b11 << 22;
+const PF_FLAG = 1 << 24;
+
 pub const Move = struct {
-    from: Square,
-    to: Square,
-    flags: u8,
+    data: u32,
+
+    pub fn fromSquare(self: Move) Square {
+        const sq: u6 = @truncate(self.data & FROM_FLAG);
+        return @enumFromInt(sq);
+    }
+
+    pub fn toSquare(self: Move) Square {
+        const sq: u6 = @truncate((self.data & TO_FLAG) >> 6);
+        return @enumFromInt(sq);
+    }
+
+    pub fn piece(self: Move) PieceType {
+        const p: u3 = @truncate((self.data & PIECE_FLAG) >> 12);
+        return @enumFromInt(p);
+    }
+
+    pub fn capturedPiece(self: Move) PieceType {
+        const p: u3 = @truncate((self.data & CAP_FLAG) >> 15);
+        return @enumFromInt(p);
+    }
+
+    pub fn isDoubleStep(self: Move) bool {
+        return (self.data & DS_FLAG) != 0;
+    }
 
     pub fn isEnpassant(self: Move) bool {
-        return (self.flags & 0b00000001) != 0;
+        return (self.data & EN_FLAG) != 0;
     }
 
     pub fn isCapture(self: Move) bool {
-        return (self.flags & 0b00000010) != 0;
+        return (self.data & CF_FLAG) != 0;
+    }
+
+    pub fn isCastling(self: Move) bool {
+        return (self.data & CS_FLAG) != 0;
     }
 
     pub fn isPromotion(self: Move) bool {
-        return (self.flags & 0b00000100) != 0;
+        return (self.data & PF_FLAG) != 0;
     }
 
     pub fn promotionType(self: Move) PieceType {
-        const promotion_bits: u3 = @truncate(self.flags >> 3);
+        var promotion_bits: u3 = @truncate((self.data & PT_FLAG) >> 22);
+        promotion_bits += @intFromEnum(PieceType.Bishop);
         return @enumFromInt(promotion_bits);
     }
 };
-
-test "isEnpassant" {
-    var move = Move{
-        .from = Square.a1,
-        .to = Square.c2,
-        .flags = 0b00110101,
-    };
-
-    try std.testing.expect(move.isEnpassant());
-
-    move.flags ^= 1;
-
-    try std.testing.expect(!move.isEnpassant());
-}
-
-test "isCapture" {
-    var move = Move{
-        .from = Square.a1,
-        .to = Square.c2,
-        .flags = 0b00110111,
-    };
-
-    try std.testing.expect(move.isCapture());
-
-    move.flags ^= 2;
-
-    try std.testing.expect(!move.isCapture());
-}
-
-test "isPromotion" {
-    var move = Move{
-        .from = Square.a1,
-        .to = Square.c2,
-        .flags = 0b00110100,
-    };
-
-    try std.testing.expect(move.isPromotion());
-
-    move.flags ^= 4;
-
-    try std.testing.expect(!move.isPromotion());
-}
-
-test "promotionType" {
-    var move = Move{
-        .from = Square.e3,
-        .to = Square.f4,
-        .flags = 0b00001100,
-    };
-
-    try std.testing.expectEqual(PieceType.Bishop, move.promotionType());
-
-    move.flags = 0b00010100;
-    try std.testing.expectEqual(PieceType.Knight, move.promotionType());
-
-    move.flags = 0b00011100;
-    try std.testing.expectEqual(PieceType.Rook, move.promotionType());
-
-    move.flags = 0b00100100;
-    try std.testing.expectEqual(PieceType.Queen, move.promotionType());
-}
 
 pub const Side = enum {
     White,
@@ -176,3 +162,28 @@ pub const Square = enum(u6) {
     g8,
     h8,
 };
+
+test "Move.fromSquare" {
+    const move = Move{ .data = 26 };
+    try std.testing.expectEqual(Square.c4, move.fromSquare());
+}
+
+test "Move.toSquare" {
+    const move = Move{ .data = 26 << 6 };
+    try std.testing.expectEqual(Square.c4, move.toSquare());
+}
+
+test "Move.piece" {
+    const move = Move{ .data = 4 << 12 };
+    try std.testing.expectEqual(PieceType.Queen, move.piece());
+}
+
+test "Move.capturedPiece" {
+    const move = Move{ .data = 4 << 15 };
+    try std.testing.expectEqual(PieceType.Queen, move.capturedPiece());
+}
+
+test "Move.promotionType" {
+    const move = Move{ .data = 3 << 22 };
+    try std.testing.expectEqual(PieceType.Queen, move.promotionType());
+}
