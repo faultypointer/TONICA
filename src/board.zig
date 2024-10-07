@@ -1,7 +1,8 @@
 const std = @import("std");
 
-const BitBoard = @import("board/bitboard.zig").BitBoard;
 const zobrist = @import("board/zobrist.zig");
+const bitboard = @import("board/bitboard.zig");
+const BitBoard = bitboard.BitBoard;
 
 const types = @import("board/types.zig");
 const Side = types.Side;
@@ -17,6 +18,17 @@ pub const Castling_WK: u8 = 0b00000001;
 pub const Castling_WQ: u8 = 0b00000010;
 pub const Castling_BK: u8 = 0b00000100;
 pub const Castling_BQ: u8 = 0b00001000;
+
+const CASTLING_SQUARE_FLAGS = [_]u8{
+    13, 15, 15, 15, 12, 15, 15, 14,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    7,  15, 15, 15, 3,  15, 15, 11,
+};
 
 pub const NUM_SIDE = 2;
 pub const NUM_PIECE_TYPE = 6;
@@ -44,6 +56,139 @@ pub const Board = struct {
         return Board.readFromFen(STARTING_FEN);
     }
 
+    pub fn readFromFen(fen: []const u8) Board {
+        var board = Board.emptyBoard();
+        var fen_iter = std.mem.splitScalar(u8, fen, ' ');
+        board.readFenPosition(fen_iter.next().?);
+        board.readFenSideToMove(fen_iter.next().?);
+        board.readFenCastling(fen_iter.next().?);
+        board.readFenEnPassant(fen_iter.next().?);
+        if (fen_iter.next()) |half_move| {
+            board.readFenMove(half_move, true);
+            board.readFenMove(fen_iter.next() orelse "1", false);
+        } else {
+            board.state.half_move_clock = 0;
+            board.state.full_move_clock = 1;
+        }
+        zobrist.initZobristKey(&board);
+        return board;
+    }
+
+    pub fn makeMove(self: *Board, move: Move) void {
+        var current_state = self.state;
+        current_state.next_move = move;
+        self.state_stack.push(current_state);
+
+        const us = current_state.turn;
+
+        // getting thing out of the move struct;
+        const from = move.fromSquare();
+        const to = move.toSquare();
+        const piece = move.piece();
+        const is_doublestep = move.isDoubleStep();
+        const is_enpassant = move.isEnpassant();
+        const is_capture = move.isCapture();
+        const captured = move.capturedPiece();
+        const is_promotion = move.isPromotion();
+        const promoted = move.promotionType();
+        const is_castle = move.isCastling();
+
+        // before everything
+        self.state.half_move_clock += 1;
+        if (us == Side.Black) self.state.full_move_clock += 1;
+
+        // update bitboard for normal move
+        bitboard.removePieceFromSquare(&self.piece_bb[us][piece], from);
+        bitboard.addPieceToSquare(&self.piece_bb[us][piece], to);
+        self.state.castling_rights &= CASTLING_SQUARE_FLAGS[@intFromEnum(to)];
+        self.state.castling_rights &= CASTLING_SQUARE_FLAGS[@intFromEnum(from)];
+        zobrist.updatePieceKey(&self.state.key, us, piece, from);
+        zobrist.updatePieceKey(&self.state.key, us, piece, to);
+        zobrist.updateCastlingKey(&self.state.key, current_state.castling_rights, self.state.castling_rights);
+        if (piece == PieceType.Pawn) self.state.half_move_clock = 0; // reset hmv if its a pawn move
+
+        // flags update
+        // castling
+        if (is_castle) self.handleCastlingMove(to);
+
+        // doublestep
+        if (is_doublestep) self.handleDoubleStepMove(to);
+
+        // capture (en_passant and normal both)
+        if (is_capture) self.handleCaptureMove(to, captured, is_enpassant);
+
+        // promotion
+        if (is_promotion) self.handlePromotionMove(to, promoted);
+    }
+
+    fn handlePromotionMove(self: *Board, to: Square, pt: PieceType) void {
+        const bb = &self.piece_bb[self.state.turn][pt];
+        const pawn_bb = &self.piece_bb[self.state.turn][PieceType.Pawn];
+        bitboard.removePieceFromSquare(pawn_bb, to);
+        zobrist.updatePieceKey(&self.state.key, self.state.turn, PieceType.Pawn, to);
+        bitboard.addPieceToSquare(bb, to);
+        zobrist.updatePieceKey(self.state.key, self.state.turn, pt, to);
+    }
+
+    fn handleCaptureMove(self: *Board, to: Square, cap: PieceType, is_enpassant: bool) void {
+        const opp = self.state.turn.opponent();
+        var sq = to;
+        if (is_enpassant) {
+            if (opp == Side.Black) {
+                sq = @enumFromInt(@intFromEnum(to) - 8);
+            } else {
+                sq = @enumFromInt(@intFromEnum(to) + 8);
+            }
+        }
+        const bb = &self.piece_bb[opp][cap];
+        bitboard.removePieceFromSquare(bb, sq);
+        zobrist.updatePieceKey(&self.state.key, opp, cap, sq);
+    }
+
+    fn handleDoubleStepMove(self: *Board, to: Square) void {
+        if (self.state.en_passant) |sq| zobrist.updateEnPassantKey(&self.state.key, sq);
+        if (self.state.turn == Side.White) {
+            self.state.en_passant = @enumFromInt(@intFromEnum(to) - 8);
+        } else {
+            self.state.en_passant = @enumFromInt(@intFromEnum(to) + 8);
+        }
+        zobrist.updateEnPassantKey(&self.state.key, self.state.en_passant);
+    }
+
+    fn handleCastlingMove(self: *Board, to: Square) void {
+        const us = self.state.turn;
+        const bb = &self.piece_bb[us][PieceType.Rook];
+        switch (to) {
+            // white castle
+            .g1 => {
+                bitboard.removePieceFromSquare(bb, Square.h1);
+                bitboard.addPieceToSquare(bb, Square.f1);
+                zobrist.updatePieceKey(&self.state.key, us, PieceType.Rook, Square.h1);
+                zobrist.updatePieceKey(&self.state.key, us, PieceType.Rook, Square.f1);
+            },
+            .c1 => {
+                bitboard.removePieceFromSquare(bb, Square.a1);
+                bitboard.addPieceToSquare(bb, Square.d1);
+                zobrist.updatePieceKey(&self.state.key, us, PieceType.Rook, Square.a1);
+                zobrist.updatePieceKey(&self.state.key, us, PieceType.Rook, Square.d1);
+            },
+            // black castle
+            .g8 => {
+                bitboard.removePieceFromSquare(bb, Square.h8);
+                bitboard.addPieceToSquare(bb, Square.f8);
+                zobrist.updatePieceKey(&self.state.key, us, PieceType.Rook, Square.h8);
+                zobrist.updatePieceKey(&self.state.key, us, PieceType.Rook, Square.f8);
+            },
+            .c8 => {
+                bitboard.removePieceFromSquare(bb, Square.a8);
+                bitboard.addPieceToSquare(bb, Square.d8);
+                zobrist.updatePieceKey(&self.state.key, us, PieceType.Rook, Square.a8);
+                zobrist.updatePieceKey(&self.state.key, us, PieceType.Rook, Square.d8);
+            },
+            else => std.debug.panic("Invalid castling square"),
+        }
+    }
+
     fn emptyBoard() Board {
         var piece_bb: [NUM_SIDE][NUM_PIECE_TYPE]BitBoard = undefined;
         for (0..NUM_SIDE) |j| {
@@ -65,23 +210,6 @@ pub const Board = struct {
             .side_bb = side_bb,
             .state = state,
         };
-    }
-    pub fn readFromFen(fen: []const u8) Board {
-        var board = Board.emptyBoard();
-        var fen_iter = std.mem.splitScalar(u8, fen, ' ');
-        board.readFenPosition(fen_iter.next().?);
-        board.readFenSideToMove(fen_iter.next().?);
-        board.readFenCastling(fen_iter.next().?);
-        board.readFenEnPassant(fen_iter.next().?);
-        if (fen_iter.next()) |half_move| {
-            board.readFenMove(half_move, true);
-            board.readFenMove(fen_iter.next() orelse "1", false);
-        } else {
-            board.state.half_move_clock = 0;
-            board.state.full_move_clock = 1;
-        }
-        zobrist.initZobristKey(&board);
-        return board;
     }
 
     fn readFenPosition(board: *Board, fen_position: []const u8) void {
