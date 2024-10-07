@@ -84,6 +84,10 @@ pub const Move = struct {
 pub const Side = enum {
     White,
     Black,
+
+    pub fn opponent(self: Side) Side {
+        return if (self == .White) Side.Black else Side.White;
+    }
 };
 
 pub const PieceType = enum(u3) {
