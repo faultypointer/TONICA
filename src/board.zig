@@ -119,6 +119,7 @@ pub const Board = struct {
 
         // promotion
         if (is_promotion) self.handlePromotionMove(to, promoted);
+        self.updateSideBitBoards();
     }
 
     fn handlePromotionMove(self: *Board, to: Square, pt: PieceType) void {
@@ -291,7 +292,11 @@ pub const Board = struct {
         if (count_rank != 8) {
             std.debug.panic("invalid fen position feild: {s}", .{fen_position});
         }
-        for (board.piece_bb, &board.side_bb) |pieces, *side| {
+        board.updateSideBitBoards();
+    }
+
+    fn updateSideBitBoards(self: *Board) void {
+        for (self.piece_bb, &self.side_bb) |pieces, *side| {
             for (pieces) |piece| {
                 side.* |= piece;
             }
