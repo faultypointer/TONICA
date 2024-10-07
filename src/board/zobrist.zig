@@ -1,6 +1,10 @@
 const std = @import("std");
 const debug = std.debug;
 
+const types = @import("types.zig");
+const Side = types.Side;
+const PieceType = types.PieceType;
+const Square = types.Square;
 const mboard = @import("../board.zig");
 const Board = mboard.Board;
 const bitboard = @import("../board/bitboard.zig");
@@ -35,6 +39,28 @@ pub fn initZobristKey(board: *Board) void {
         key ^= ZOBRIST_RANDOMS[ENPASSANT_RANDOM_OFFSET + idx];
     }
     board.state.key = key;
+}
+
+pub fn updatePieceKey(key: *u64, side: Side, pt: PieceType, sq: Square) void {
+    const idx: usize = @intFromEnum(side) * PIECE_COLOR_RANDOM_OFFSET + @intFromEnum(pt) * 64 + @intFromEnum(sq);
+    key.* ^= ZOBRIST_RANDOMS[idx];
+}
+
+pub fn updateCastlingKey(key: *u64, prev: u8, curr: u8) void {
+    const pidx: usize = @intCast(prev);
+    const cidx: usize = @intCast(curr);
+    key.* ^= ZOBRIST_RANDOMS[CASTLING_RANDOM_OFFSET + pidx] ^ ZOBRIST_RANDOMS[CASTLING_RANDOM_OFFSET + cidx];
+}
+
+pub fn updateSideToMoveKey(key: *u64, side: Side) void {
+    const idx: usize = @intFromEnum(side);
+    const oidx: usize = @intFromEnum(side.opponent());
+    key.* ^= ZOBRIST_RANDOMS[SIDE_RANDOM_OFFSET + idx] ^ ZOBRIST_RANDOMS[SIDE_RANDOM_OFFSET + oidx];
+}
+
+pub fn updateEnPassantKey(key: *u64, sq: Square) void {
+    const idx: usize = @intCast(sq);
+    key.* ^= ZOBRIST_RANDOMS[ENPASSANT_RANDOM_OFFSET + idx];
 }
 
 // the randoms are index first for each square for each piece the side to move then
