@@ -1,5 +1,6 @@
 const std = @import("std");
 const math = std.math;
+const Square = @import("types.zig").Square;
 pub const BitBoard = u64;
 
 const MAX64 = 0xffffffffffffffff;
@@ -13,6 +14,15 @@ pub fn removeLS1B(bb: *BitBoard) u6 {
     return loc;
 }
 
+pub fn removePieceFromSquare(bb: *BitBoard, sq: Square) void {
+    std.debug.assert((bb.* & (1 << @intFromEnum(sq))) != 0);
+    bb.* ^= (1 << @intFromEnum(sq));
+}
+
+pub fn addPieceToSquare(bb: *BitBoard, sq: Square) void {
+    std.debug.assert((bb.* & (1 << @intFromEnum(sq))) == 0);
+    bb.* |= (1 << @intFromEnum(sq));
+}
 test "removesLSB1" {
     var a: u64 = 0b100;
     try std.testing.expectEqual(2, removeLS1B(&a));
