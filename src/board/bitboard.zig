@@ -23,6 +23,11 @@ pub fn addPieceToSquare(bb: *BitBoard, sq: Square) void {
     std.debug.assert((bb.* & (1 << @intFromEnum(sq))) == 0);
     bb.* |= (1 << @intFromEnum(sq));
 }
+
+pub fn setPieceAtLoc(bb: *BitBoard, loc: u6) void {
+    bb.* |= (1 << loc);
+}
+
 test "removesLSB1" {
     var a: u64 = 0b100;
     try std.testing.expectEqual(2, removeLS1B(&a));
