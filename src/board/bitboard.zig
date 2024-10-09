@@ -28,6 +28,35 @@ pub fn setPieceAtLoc(bb: *BitBoard, loc: u6) void {
     bb.* |= (1 << loc);
 }
 
+pub fn printBitboard(bitboard: u64) void {
+
+    // Print the top border
+    std.debug.print("  +---+---+---+---+---+---+---+---+\n", .{});
+
+    // Iterate through ranks (8 to 1)
+    var rank: i32 = 8;
+    while (rank >= 1) : (rank -= 1) {
+        // Print rank number
+        std.debug.print("{d} ", .{rank});
+
+        // Iterate through files (a to h)
+        var file: u8 = 0;
+        while (file < 8) : (file += 1) {
+            const square = @as(u6, @intCast((rank - 1) * 8 + file));
+            const piece = if ((bitboard & (@as(u64, 1) << square)) != 0) "X" else " ";
+            std.debug.print("| {s} ", .{piece});
+        }
+
+        std.debug.print("|\n", .{});
+
+        // Print separator between ranks
+        std.debug.print("  +---+---+---+---+---+---+---+---+\n", .{});
+    }
+
+    // Print file letters
+    std.debug.print("    a   b   c   d   e   f   g   h\n", .{});
+}
+
 test "removesLSB1" {
     var a: u64 = 0b100;
     try std.testing.expectEqual(2, removeLS1B(&a));
