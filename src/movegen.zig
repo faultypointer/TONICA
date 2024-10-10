@@ -36,8 +36,6 @@ pub const MovGen = struct {
 
         return movelist;
     }
-    // TODO castling moves and castling while in check moves which i dont know should be handled here or
-    // while searching
     fn generateKingMoves(_: MovGen, board: Board, movelist: *MoveList) void {
         const us = board.state.turn;
         const us_idx: usize = @intCast(@intFromEnum(us));
@@ -46,26 +44,62 @@ pub const MovGen = struct {
         const king_idx = @as(usize, @intFromEnum(PieceType.King));
         var bb = board.piece_bb[us_idx][king_idx];
         const occupancy = board.side_bb[0] | board.side_bb[1];
-        while (bb != 0) {
-            const sq = bitboard.removeLS1B(&bb);
-            var attack = KING_ATTACK[sq];
-            attack &= bitboard.complement(board.side_bb[us_idx]);
-            var empty_squares = bitboard.complement(occupancy) & attack;
-            // captures
-            var captures = attack & board.side_bb[opp_idx];
+        const sq = bitboard.removeLS1B(&bb);
+        var attack = KING_ATTACK[sq];
+        attack &= bitboard.complement(board.side_bb[us_idx]);
+        var empty_squares = bitboard.complement(occupancy) & attack;
+        // captures
+        var captures = attack & board.side_bb[opp_idx];
 
-            while (empty_squares != 0) {
-                const to = bitboard.removeLS1B(&empty_squares);
-                movelist.addMove(Move.init(sq, to, PieceType.King));
-            }
-            while (captures != 0) {
-                const to = bitboard.removeLS1B(&captures);
-                var move = Move.init(sq, to, PieceType.King);
-                const to_sq: Square = @enumFromInt(to);
-                const cap = board.pieceAt(to_sq, opp);
-                move.addCapturePiece(cap.?);
-                movelist.addMove(move);
-            }
+        while (empty_squares != 0) {
+            const to = bitboard.removeLS1B(&empty_squares);
+            movelist.addMove(Move.init(sq, to, PieceType.King));
+        }
+        while (captures != 0) {
+            const to = bitboard.removeLS1B(&captures);
+            var move = Move.init(sq, to, PieceType.King);
+            const to_sq: Square = @enumFromInt(to);
+            const cap = board.pieceAt(to_sq, opp);
+            move.addCapturePiece(cap.?);
+            movelist.addMove(move);
+        }
+
+        // castl
+        switch (us) {
+            // NOTE WARN ive decided to check if the square king has to move throught while castling
+            // is attacked by enemy pieces or not when doing searching
+            .White => {
+                // king side castle
+                if (((board.state.castling_rights & mboard.Castling_WK) != 0) and // has castling rights
+                    ((occupancy & 0x60) == 0) // and // no pieces (enemy or friend) between king and rook
+                // ((board.attacks_bb[opp_idx] & 0x60) == 0) // no enemy pieces attacks the square the king moves through
+                ) {
+                    movelist.addMove(types.White_King_Castle);
+                }
+                // queen side castle
+                if (((board.state.castling_rights & mboard.Castling_WQ) != 0) and // has castling rights
+                    ((occupancy & 0x0E) == 0) // and // no pieces (enemy or friend) between king and rook
+                // ((board.attacks_bb[opp_idx] & 0x0C) == 0) // no enemy pieces attacks the square the king moves through
+                ) {
+                    movelist.addMove(types.White_Queen_Castle);
+                }
+            },
+            .Black => {
+                // king side castle
+                if (((board.state.castling_rights & mboard.Castling_BK) != 0) and // has castling rights
+                    ((occupancy & (@as(u64, 0x60) << 56)) == 0) // and // no pieces (enemy or friend) between king and rook
+                // ((board.attacks_bb[opp_idx] & (@as(u64, 0x60) << 56)) == 0) // no enemy pieces attacks the square the king moves through
+                ) {
+                    movelist.addMove(types.Black_King_Castle);
+                }
+                // queen side castle
+                if (((board.state.castling_rights & mboard.Castling_BQ) != 0) and // has castling rights
+                    ((occupancy & (@as(u64, 0x0E) << 56)) == 0) // and // no pieces (enemy or friend) between king and rook
+                // ((board.attacks_bb[opp_idx] & (@as(u64, 0x0C) << 56)) == 0) // no enemy pieces attacks the square the king moves through
+                ) {
+                    movelist.addMove(types.Black_Queen_Castle);
+                }
+            },
         }
     }
 
