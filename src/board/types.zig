@@ -34,6 +34,17 @@ const PF_FLAG = 1 << 24;
 pub const Move = struct {
     data: u32,
 
+    pub fn init(from: u6, to: u6, pce: PieceType) Move {
+        var data: u32 = 0;
+        data |= from;
+        data |= (to << 6);
+        data |= (@intFromEnum(pce) << 12);
+        return Move{ .data = data };
+    }
+    pub fn addCapturePiece(self: *Move, cap: PieceType) void {
+        self.data |= (@as(u32, 1) << 20);
+        self.data |= cap << 15;
+    }
     pub fn fromSquare(self: Move) Square {
         const sq: u6 = @truncate(self.data & FROM_FLAG);
         return @enumFromInt(sq);
@@ -78,6 +89,25 @@ pub const Move = struct {
         var promotion_bits: u3 = @truncate((self.data & PT_FLAG) >> 22);
         promotion_bits += @intFromEnum(PieceType.Bishop);
         return @enumFromInt(promotion_bits);
+    }
+};
+
+pub const MoveList = struct {
+    moves: [100]Move, // there is no way a position has more than 100 possible moves right??
+    len: usize,
+
+    pub fn init() MoveList {
+        var movelist = MoveList{
+            .moves = undefined,
+        };
+        for (0..100) |i| {
+            movelist.moves[i] = 0;
+        }
+        movelist.len = 0;
+    }
+    pub fn addMove(self: *MoveList, move: Move) void {
+        self.moves[self.len] = move;
+        self.len += 1;
     }
 };
 
