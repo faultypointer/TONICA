@@ -28,6 +28,10 @@ pub fn setPieceAtLoc(bb: *BitBoard, loc: u6) void {
     bb.* |= (1 << loc);
 }
 
+pub fn complement(bb: BitBoard) void {
+    return MAX64 - bb;
+}
+
 pub fn printBitboard(bitboard: u64) void {
 
     // Print the top border
