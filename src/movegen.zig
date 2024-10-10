@@ -5,6 +5,9 @@ const BISHOP_MASK = sliderattack.BISHOP_OCCUPANCY;
 const ROOK_MAGIC = sliderattack.ROOK_MAGIC;
 const BISHOP_MAGIC = sliderattack.BISHOP_MAGIC;
 
+const nonsliderattack = @import("movegen/nonsliderattack.zig");
+const KNIGHT_ATTACK = nonsliderattack.KNIGHT_ATTACK;
+
 const types = @import("board/types.zig");
 const Move = types.Move;
 const MoveList = types.MoveList;
@@ -27,8 +30,40 @@ pub const MovGen = struct {
     pub fn generateMoves(self: *MovGen, board: Board) MoveList {
         var movelist = MoveList.init();
         self.generateSliderMoves(board, &movelist);
+        self.generateKnightMoves(board, &movelist);
 
         return movelist;
+    }
+
+    fn generateKnightMoves(_: MovGen, board: Board, movelist: *MoveList) void {
+        const us = board.state.turn;
+        const us_idx: usize = @intCast(@intFromEnum(us));
+        const opp = board.state.turn.opponent();
+        const opp_idx: usize = @intCast(@intFromEnum(opp));
+        const knight_idx = @as(usize, @intFromEnum(PieceType.Knight));
+        var bb = board.piece_bb[us_idx][knight_idx];
+        const occupancy = board.side_bb[0] | board.side_bb[1];
+        while (bb != 0) {
+            const sq = bitboard.removeLS1B(&bb);
+            var attack = KNIGHT_ATTACK[sq];
+            attack &= bitboard.complement(board.side_bb[us_idx]);
+            var empty_squares = bitboard.complement(occupancy) & attack;
+            // captures
+            var captures = attack & board.side_bb[opp_idx];
+
+            while (empty_squares != 0) {
+                const to = bitboard.removeLS1B(&empty_squares);
+                movelist.addMove(Move.init(sq, to, PieceType.Knight));
+            }
+            while (captures != 0) {
+                const to = bitboard.removeLS1B(&captures);
+                var move = Move.init(sq, to, PieceType.Knight);
+                const to_sq: Square = @enumFromInt(to);
+                const cap = board.pieceAt(to_sq, opp);
+                move.addCapturePiece(cap.?);
+                movelist.addMove(move);
+            }
+        }
     }
 
     fn generateSliderMoves(self: *MovGen, board: Board, movelist: *MoveList) void {
