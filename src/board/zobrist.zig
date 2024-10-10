@@ -42,7 +42,7 @@ pub fn initZobristKey(board: *Board) void {
 }
 
 pub fn updatePieceKey(key: *u64, side: Side, pt: PieceType, sq: Square) void {
-    const idx: usize = @intFromEnum(side) * PIECE_COLOR_RANDOM_OFFSET + @intFromEnum(pt) * 64 + @intFromEnum(sq);
+    const idx: usize = @as(usize, @intFromEnum(side)) * PIECE_COLOR_RANDOM_OFFSET + @as(usize, @intFromEnum(pt)) * 64 + @as(usize, @intFromEnum(sq));
     key.* ^= ZOBRIST_RANDOMS[idx];
 }
 
@@ -59,7 +59,7 @@ pub fn updateSideToMoveKey(key: *u64, side: Side) void {
 }
 
 pub fn updateEnPassantKey(key: *u64, sq: Square) void {
-    const idx: usize = @intCast(sq);
+    const idx: usize = @intCast(@intFromEnum(sq));
     key.* ^= ZOBRIST_RANDOMS[ENPASSANT_RANDOM_OFFSET + idx];
 }
 
