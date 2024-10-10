@@ -75,8 +75,9 @@ pub const Board = struct {
     }
 
     pub fn pieceAt(self: Board, sq: Square, side: Side) ?PieceType {
+        const side_idx = @as(usize, @intFromEnum(side));
         for (0..NUM_PIECE_TYPE) |i| {
-            if ((self.piece_bb[side][i] & (@as(u64, 1) << sq)) != 0) {
+            if ((self.piece_bb[side_idx][i] & (@as(u64, 1) << @intFromEnum(sq))) != 0) {
                 return @enumFromInt(i);
             }
         }
@@ -105,10 +106,16 @@ pub const Board = struct {
         // before everything
         self.state.half_move_clock += 1;
         if (us == Side.Black) self.state.full_move_clock += 1;
-
+        const us_idx: usize = @intCast(@intFromEnum(us));
+        const pcs_idx: usize = @intCast(@intFromEnum(piece));
+        std.debug.print("moving\npiece: {any}\nfrom: {any}\nto: {any}\n", .{ piece, from, to });
         // update bitboard for normal move
-        bitboard.removePieceFromSquare(&self.piece_bb[us][piece], from);
-        bitboard.addPieceToSquare(&self.piece_bb[us][piece], to);
+        bitboard.removePieceFromSquare(&self.piece_bb[us_idx][pcs_idx], from);
+        // std.debug.print("after remove\n", .{});
+        // bitboard.printBitboard(self.piece_bb[us_idx][pcs_idx]);
+        bitboard.addPieceToSquare(&self.piece_bb[us_idx][pcs_idx], to);
+        // std.debug.print("after add\n", .{});
+        // bitboard.printBitboard(self.piece_bb[us_idx][pcs_idx]);
         self.state.castling_rights &= CASTLING_SQUARE_FLAGS[@intFromEnum(to)];
         self.state.castling_rights &= CASTLING_SQUARE_FLAGS[@intFromEnum(from)];
         zobrist.updatePieceKey(&self.state.key, us, piece, from);
@@ -129,19 +136,24 @@ pub const Board = struct {
         // promotion
         if (is_promotion) self.handlePromotionMove(to, promoted);
         self.updateSideBitBoards();
+        self.state.turn = self.state.turn.opponent();
     }
 
     fn handlePromotionMove(self: *Board, to: Square, pt: PieceType) void {
-        const bb = &self.piece_bb[self.state.turn][pt];
-        const pawn_bb = &self.piece_bb[self.state.turn][PieceType.Pawn];
+        const side_idx = @as(usize, @intFromEnum(self.state.turn));
+        const pt_idx = @as(usize, @intFromEnum(pt));
+        const bb = &self.piece_bb[side_idx][pt_idx];
+        const pawn_bb = &self.piece_bb[side_idx][@as(usize, @intFromEnum(PieceType.Pawn))];
         bitboard.removePieceFromSquare(pawn_bb, to);
         zobrist.updatePieceKey(&self.state.key, self.state.turn, PieceType.Pawn, to);
         bitboard.addPieceToSquare(bb, to);
-        zobrist.updatePieceKey(self.state.key, self.state.turn, pt, to);
+        zobrist.updatePieceKey(&self.state.key, self.state.turn, pt, to);
     }
 
     fn handleCaptureMove(self: *Board, to: Square, cap: PieceType, is_enpassant: bool) void {
         const opp = self.state.turn.opponent();
+        const opp_idx = @as(usize, @intFromEnum(opp));
+        const cap_idx = @as(usize, @intFromEnum(cap));
         var sq = to;
         if (is_enpassant) {
             if (opp == Side.Black) {
@@ -150,7 +162,7 @@ pub const Board = struct {
                 sq = @enumFromInt(@intFromEnum(to) + 8);
             }
         }
-        const bb = &self.piece_bb[opp][cap];
+        const bb = &self.piece_bb[opp_idx][cap_idx];
         bitboard.removePieceFromSquare(bb, sq);
         zobrist.updatePieceKey(&self.state.key, opp, cap, sq);
     }
@@ -162,12 +174,14 @@ pub const Board = struct {
         } else {
             self.state.en_passant = @enumFromInt(@intFromEnum(to) + 8);
         }
-        zobrist.updateEnPassantKey(&self.state.key, self.state.en_passant);
+        zobrist.updateEnPassantKey(&self.state.key, self.state.en_passant.?);
     }
 
     fn handleCastlingMove(self: *Board, to: Square) void {
         const us = self.state.turn;
-        const bb = &self.piece_bb[us][PieceType.Rook];
+        const us_idx = @as(u64, @intFromEnum(us));
+        const pcs_idx = @as(u64, @intFromEnum(PieceType.Rook));
+        const bb = &self.piece_bb[us_idx][pcs_idx];
         switch (to) {
             // white castle
             .g1 => {
@@ -195,7 +209,7 @@ pub const Board = struct {
                 zobrist.updatePieceKey(&self.state.key, us, PieceType.Rook, Square.a8);
                 zobrist.updatePieceKey(&self.state.key, us, PieceType.Rook, Square.d8);
             },
-            else => std.debug.panic("Invalid castling square"),
+            else => std.debug.panic("Invalid castling square", .{}),
         }
     }
 
@@ -306,6 +320,7 @@ pub const Board = struct {
 
     fn updateSideBitBoards(self: *Board) void {
         for (self.piece_bb, &self.side_bb) |pieces, *side| {
+            side.* = 0;
             for (pieces) |piece| {
                 side.* |= piece;
             }
@@ -382,6 +397,55 @@ pub const Board = struct {
         } else {
             board.state.full_move_clock = move_clock;
         }
+    }
+    pub fn printBoard(self: *const Board) void {
+        const pieces = [_][2]u21{
+            [_]u21{ '♙', 'p' }, // Pawn
+            [_]u21{ '♗', '♝' }, // Bishop
+            [_]u21{ '♘', '♞' }, // Knight
+            [_]u21{ '♖', '♜' }, // Rook
+            [_]u21{ '♕', '♛' }, // Queen
+            [_]u21{ '♔', '♚' }, // King
+        };
+
+        const stdout = std.io.getStdOut().writer();
+
+        // Print the top border
+        stdout.print("  +---+---+---+---+---+---+---+---+\n", .{}) catch unreachable;
+
+        // Iterate through ranks (8 to 1)
+        var rank: i32 = 8;
+        while (rank >= 1) : (rank -= 1) {
+            // Print rank number
+            stdout.print("{d} ", .{rank}) catch unreachable;
+
+            // Iterate through files (a to h)
+            var file: u8 = 0;
+            while (file < 8) : (file += 1) {
+                const square = @as(u6, @intCast((rank - 1) * 8 + file));
+                var piece: u21 = ' ';
+
+                // Check each piece type and side
+                for (self.piece_bb, 0..) |side_pieces, side| {
+                    for (side_pieces, 0..) |piece_bitboard, piece_type| {
+                        if ((piece_bitboard & (@as(u64, 1) << square)) != 0) {
+                            piece = pieces[piece_type][side];
+                            break;
+                        }
+                    }
+                    if (piece != ' ') break;
+                }
+
+                stdout.print("| {u} ", .{piece}) catch unreachable;
+            }
+            stdout.print("|\n", .{}) catch unreachable;
+
+            // Print separator between ranks
+            stdout.print("  +---+---+---+---+---+---+---+---+\n", .{}) catch unreachable;
+        }
+
+        // Print file letters
+        stdout.print("    a   b   c   d   e   f   g   h\n", .{}) catch unreachable;
     }
 };
 
