@@ -9,6 +9,7 @@ const types = @import("board/types.zig");
 const Move = types.Move;
 const MoveList = types.MoveList;
 const PieceType = types.PieceType;
+const Square = types.Square;
 
 const mboard = @import("board.zig");
 const Board = mboard.Board;
@@ -25,17 +26,20 @@ pub const MovGen = struct {
     }
     pub fn generateMoves(self: *MovGen, board: Board) MoveList {
         var movelist = MoveList.init();
-        self.generateSliderMoves(&movelist, board);
+        self.generateSliderMoves(board, &movelist);
 
         return movelist;
     }
 
     fn generateSliderMoves(self: *MovGen, board: Board, movelist: *MoveList) void {
         const us = board.state.turn;
+        const us_idx: usize = @intCast(@intFromEnum(us));
         const opp = board.state.turn.opponent();
+        const opp_idx: usize = @intCast(@intFromEnum(opp));
         const sliders = [_]PieceType{ PieceType.Bishop, PieceType.Rook, PieceType.Queen };
         for (sliders) |slider| {
-            var bb = board.piece_bb[us][slider];
+            const slider_idx = @as(usize, @intFromEnum(slider));
+            var bb = board.piece_bb[us_idx][slider_idx];
             const occupancy = board.side_bb[0] | board.side_bb[1];
             while (bb != 0) {
                 const sq = bitboard.removeLS1B(&bb);
@@ -61,11 +65,11 @@ pub const MovGen = struct {
                     else => unreachable,
                 };
                 // disable friendly fire
-                attack &= bitboard.complement(board.side_bb[us]);
+                attack &= bitboard.complement(board.side_bb[us_idx]);
                 // non captures
                 var empty_squares = bitboard.complement(occupancy) & attack;
                 // captures
-                var captures = attack & board.side_bb[opp];
+                var captures = attack & board.side_bb[opp_idx];
 
                 while (empty_squares != 0) {
                     const to = bitboard.removeLS1B(&empty_squares);
@@ -74,7 +78,8 @@ pub const MovGen = struct {
                 while (captures != 0) {
                     const to = bitboard.removeLS1B(&captures);
                     var move = Move.init(sq, to, slider);
-                    const cap = board.pieceAt(to, opp);
+                    const to_sq: Square = @enumFromInt(to);
+                    const cap = board.pieceAt(to_sq, opp);
                     move.addCapturePiece(cap.?);
                     movelist.addMove(move);
                 }
