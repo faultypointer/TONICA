@@ -15,20 +15,20 @@ pub fn removeLS1B(bb: *BitBoard) u6 {
 }
 
 pub fn removePieceFromSquare(bb: *BitBoard, sq: Square) void {
-    std.debug.assert((bb.* & (1 << @intFromEnum(sq))) != 0);
-    bb.* ^= (1 << @intFromEnum(sq));
+    std.debug.assert((bb.* & (@as(u64, 1) << @intFromEnum(sq))) != 0);
+    bb.* ^= (@as(u64, 1) << @intFromEnum(sq));
 }
 
 pub fn addPieceToSquare(bb: *BitBoard, sq: Square) void {
-    std.debug.assert((bb.* & (1 << @intFromEnum(sq))) == 0);
-    bb.* |= (1 << @intFromEnum(sq));
+    std.debug.assert((bb.* & (@as(u64, 1) << @intFromEnum(sq))) == 0);
+    bb.* |= (@as(u64, 1) << @intFromEnum(sq));
 }
 
 pub fn setPieceAtLoc(bb: *BitBoard, loc: u6) void {
-    bb.* |= (1 << loc);
+    bb.* |= (@as(u64, 1) << loc);
 }
 
-pub fn complement(bb: BitBoard) void {
+pub fn complement(bb: BitBoard) BitBoard {
     return MAX64 - bb;
 }
 
