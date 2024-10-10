@@ -31,6 +31,10 @@ const CS_FLAG = CF_FLAG << 1;
 const PT_FLAG = 0b11 << 22;
 const PF_FLAG = 1 << 24;
 
+pub const White_King_Castle = Move{ .data = 0b00000000001000000101000110000100 };
+pub const White_Queen_Castle = Move{ .data = 0b00000000001000000101000010000100 };
+pub const Black_King_Castle = Move{ .data = 0b00000000001000000101111110111100 };
+pub const Black_Queen_Castle = Move{ .data = 0b00000000001000000101111010111100 };
 pub const Move = struct {
     data: u32,
 
