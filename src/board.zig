@@ -74,6 +74,15 @@ pub const Board = struct {
         return board;
     }
 
+    pub fn pieceAt(self: Board, sq: Square, side: Side) ?PieceType {
+        for (0..NUM_PIECE_TYPE) |i| {
+            if ((self.piece_bb[side][i] & (@as(u64, 1) << sq)) != 0) {
+                return @enumFromInt(i);
+            }
+        }
+        return null;
+    }
+
     pub fn makeMove(self: *Board, move: Move) void {
         var current_state = self.state;
         current_state.next_move = move;
