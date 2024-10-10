@@ -37,13 +37,13 @@ pub const Move = struct {
     pub fn init(from: u6, to: u6, pce: PieceType) Move {
         var data: u32 = 0;
         data |= from;
-        data |= (to << 6);
-        data |= (@intFromEnum(pce) << 12);
+        data |= (@as(u32, to) << 6);
+        data |= (@as(u32, @intFromEnum(pce)) << 12);
         return Move{ .data = data };
     }
     pub fn addCapturePiece(self: *Move, cap: PieceType) void {
         self.data |= (@as(u32, 1) << 20);
-        self.data |= cap << 15;
+        self.data |= @as(u32, @intFromEnum(cap)) << 15;
     }
     pub fn fromSquare(self: Move) Square {
         const sq: u6 = @truncate(self.data & FROM_FLAG);
@@ -99,11 +99,13 @@ pub const MoveList = struct {
     pub fn init() MoveList {
         var movelist = MoveList{
             .moves = undefined,
+            .len = 0,
         };
         for (0..100) |i| {
-            movelist.moves[i] = 0;
+            movelist.moves[i] = Move{ .data = 0 };
         }
         movelist.len = 0;
+        return movelist;
     }
     pub fn addMove(self: *MoveList, move: Move) void {
         self.moves[self.len] = move;
