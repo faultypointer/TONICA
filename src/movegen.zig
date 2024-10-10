@@ -7,6 +7,7 @@ const BISHOP_MAGIC = sliderattack.BISHOP_MAGIC;
 
 const nonsliderattack = @import("movegen/nonsliderattack.zig");
 const KNIGHT_ATTACK = nonsliderattack.KNIGHT_ATTACK;
+const KING_ATTACK = nonsliderattack.KING_ATTACK;
 
 const types = @import("board/types.zig");
 const Move = types.Move;
@@ -31,8 +32,41 @@ pub const MovGen = struct {
         var movelist = MoveList.init();
         self.generateSliderMoves(board, &movelist);
         self.generateKnightMoves(board, &movelist);
+        self.generateKingMoves(board, &movelist);
 
         return movelist;
+    }
+    // TODO castling moves and castling while in check moves which i dont know should be handled here or
+    // while searching
+    fn generateKingMoves(_: MovGen, board: Board, movelist: *MoveList) void {
+        const us = board.state.turn;
+        const us_idx: usize = @intCast(@intFromEnum(us));
+        const opp = board.state.turn.opponent();
+        const opp_idx: usize = @intCast(@intFromEnum(opp));
+        const king_idx = @as(usize, @intFromEnum(PieceType.King));
+        var bb = board.piece_bb[us_idx][king_idx];
+        const occupancy = board.side_bb[0] | board.side_bb[1];
+        while (bb != 0) {
+            const sq = bitboard.removeLS1B(&bb);
+            var attack = KING_ATTACK[sq];
+            attack &= bitboard.complement(board.side_bb[us_idx]);
+            var empty_squares = bitboard.complement(occupancy) & attack;
+            // captures
+            var captures = attack & board.side_bb[opp_idx];
+
+            while (empty_squares != 0) {
+                const to = bitboard.removeLS1B(&empty_squares);
+                movelist.addMove(Move.init(sq, to, PieceType.King));
+            }
+            while (captures != 0) {
+                const to = bitboard.removeLS1B(&captures);
+                var move = Move.init(sq, to, PieceType.King);
+                const to_sq: Square = @enumFromInt(to);
+                const cap = board.pieceAt(to_sq, opp);
+                move.addCapturePiece(cap.?);
+                movelist.addMove(move);
+            }
+        }
     }
 
     fn generateKnightMoves(_: MovGen, board: Board, movelist: *MoveList) void {
