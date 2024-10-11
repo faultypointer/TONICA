@@ -74,6 +74,17 @@ pub const MovGen = struct {
                 move.addCapturePiece(cap.?);
                 movelist.addMove(move);
             }
+
+            // en_passant capture
+            if (board.state.en_passant) |square| {
+                const sq_idx = @intFromEnum(square);
+                if (nonsliderattack.PAWN_ATTACK[us_idx][sq] & (@as(u64, 1) << sq_idx) != 0) {
+                    var move = Move.init(sq, sq_idx, PieceType.Pawn);
+                    move.addCapturePiece(PieceType.Pawn);
+                    move.setEnPassantFlag();
+                    movelist.addMove(move);
+                }
+            }
         }
 
         // double push
