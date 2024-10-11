@@ -131,7 +131,7 @@ pub const Board = struct {
         if (us == Side.Black) self.state.full_move_clock += 1;
         const us_idx: usize = @intCast(@intFromEnum(us));
         const pcs_idx: usize = @intCast(@intFromEnum(piece));
-        std.debug.print("moving\npiece: {any}\nfrom: {any}\nto: {any}\n", .{ piece, from, to });
+        move.debugPrint();
         // update bitboard for normal move
         bitboard.removePieceFromSquare(&self.piece_bb[us_idx][pcs_idx], from);
         // std.debug.print("after remove\n", .{});
@@ -150,11 +150,10 @@ pub const Board = struct {
         // castling
         if (is_castle) self.handleCastlingMove(to);
 
-        // doublestep
-        if (is_doublestep) self.handleDoubleStepMove(to);
-
         // capture (en_passant and normal both)
         if (is_capture) self.handleCaptureMove(to, captured, is_enpassant);
+        // doublestep
+        if (is_doublestep) self.handleDoubleStepMove(to) else self.state.en_passant = null;
 
         // promotion
         if (is_promotion) self.handlePromotionMove(to, promoted);
