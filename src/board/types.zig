@@ -51,6 +51,9 @@ pub const Move = struct {
         self.data |= (@as(u32, 1) << 20);
         self.data |= @as(u32, @intFromEnum(cap)) << 15;
     }
+    pub fn setDoubleStepFlag(self: *Move) void {
+        self.data |= @as(u32, 1) << 18;
+    }
     pub fn fromSquare(self: Move) Square {
         const sq: u6 = @truncate(self.data & FROM_FLAG);
         return @enumFromInt(sq);
