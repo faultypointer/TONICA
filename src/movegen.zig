@@ -14,6 +14,9 @@ const Move = types.Move;
 const MoveList = types.MoveList;
 const PieceType = types.PieceType;
 const Square = types.Square;
+const Side = types.Side;
+const RANK7 = types.BBRANK7;
+const RANK2 = types.BBRANK2;
 
 const mboard = @import("board.zig");
 const Board = mboard.Board;
@@ -33,10 +36,31 @@ pub const MovGen = struct {
         self.generateSliderMoves(board, &movelist);
         self.generateKnightMoves(board, &movelist);
         self.generateKingMoves(board, &movelist);
+        self.generatePawnMoves(board, &movelist);
 
         return movelist;
     }
-    fn generateKingMoves(_: MovGen, board: Board, movelist: *MoveList) void {
+
+    fn generatePawnMoves(_: *const MovGen, board: Board, movelist: *MoveList) void {
+        const us = board.state.turn;
+        const us_idx: usize = @intCast(@intFromEnum(us));
+        const opp = board.state.turn.opponent();
+        const opp_idx: usize = @intCast(@intFromEnum(opp));
+        const occupancy = board.side_bb[us_idx] | board.side_bb[opp_idx];
+        const pawn_bb = board.piece_bb[us_idx][@as(usize, @intFromEnum(PieceType.Pawn))];
+        // single push no promotion
+        var bb = pawn_bb;
+        bb &= if (us == Side.White) ~RANK7 else ~RANK2; // remove pawn that will promote
+        while (bb != 0) {
+            const sq = bitboard.removeLS1B(&bb);
+            const to = if (us == Side.White) sq +% 8 else sq -% 8;
+            if ((occupancy & (@as(u64, 1) << to)) != 0) continue;
+            const move = Move.init(sq, to, PieceType.Pawn);
+            movelist.addMove(move);
+        }
+    }
+
+    fn generateKingMoves(_: *const MovGen, board: Board, movelist: *MoveList) void {
         const us = board.state.turn;
         const us_idx: usize = @intCast(@intFromEnum(us));
         const opp = board.state.turn.opponent();

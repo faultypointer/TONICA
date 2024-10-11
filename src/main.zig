@@ -12,7 +12,7 @@ const PieceType = @import("board/types.zig").PieceType;
 pub fn main() !void {
     std.debug.print("Qf7#\n", .{});
 
-    var board = Board.init();
+    var board = Board.readFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1");
     var movgen = MovGen.init();
     // std.debug.print("Starting board\n", .{});
     // printBitboard(board.side_bb[0] | board.side_bb[1]);
