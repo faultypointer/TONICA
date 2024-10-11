@@ -24,13 +24,15 @@ pub fn main() !void {
     board.makeMove(move);
     // std.debug.print("board after h5\n", .{});
     // printBitboard(board.side_bb[0] | board.side_bb[1]);
-    std.debug.print("possible attack for white now\n", .{});
+    std.debug.print("possible attack for Black now\n", .{});
     const moves = movgen.generateMoves(board);
     for (0..moves.len) |i| {
-        std.debug.print("{b:0>64}\n", .{moves.moves[i].data});
+        // std.debug.print("{b:0>64}\n", .{moves.moves[i].data});
         var temp_board = board;
         temp_board.makeMove(moves.moves[i]);
         // printBitboard(board.side_bb[0] | board.side_bb[1]);
         temp_board.printBoard();
+        temp_board.state.print();
+        _ = std.io.getStdIn().reader().readByte() catch unreachable;
     }
 }
