@@ -58,6 +58,20 @@ pub const MovGen = struct {
             const move = Move.init(sq, to, PieceType.Pawn);
             movelist.addMove(move);
         }
+
+        // double push
+        bb = pawn_bb;
+        bb &= if (us == Side.White) RANK2 else RANK7; // double push only available on starting square
+        while (bb != 0) {
+            const sq = bitboard.removeLS1B(&bb);
+            const to = if (us == Side.White) sq +% 16 else sq -% 16;
+            var pawn_blockers = @as(u64, 0x101);
+            pawn_blockers <<= if (us == Side.White) (to - 8) else to;
+            if ((occupancy & pawn_blockers) != 0) continue;
+            var move = Move.init(sq, to, PieceType.Pawn);
+            move.setDoubleStepFlag();
+            movelist.addMove(move);
+        }
     }
 
     fn generateKingMoves(_: *const MovGen, board: Board, movelist: *MoveList) void {
