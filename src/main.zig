@@ -12,16 +12,16 @@ const PieceType = @import("board/types.zig").PieceType;
 pub fn main() !void {
     std.debug.print("Qf7#\n", .{});
 
-    var board = Board.readFromFen("rnbqkbnr/pppppppp/8/8/8/7Q/PPPPPPPP/R3K2R w KQkq - 0 1");
+    const board = Board.readFromFen("1rb1kbnr/Pppppppp/8/8/8/p1n3q1/P1PPPPPP/RNBQKBNR w KQk - 0 1");
     var movgen = MovGen.init();
     // std.debug.print("Starting board\n", .{});
     // printBitboard(board.side_bb[0] | board.side_bb[1]);
-    var move = Move.init(@intFromEnum(Square.e2), @intFromEnum(Square.e4), PieceType.Pawn);
-    board.makeMove(move);
+    // var move = Move.init(@intFromEnum(Square.e2), @intFromEnum(Square.e4), PieceType.Pawn);
+    // board.makeMove(move);
     // std.debug.print("board after e4\n", .{});
     // printBitboard(board.side_bb[0] | board.side_bb[1]);
-    move = Move.init(@intFromEnum(Square.h7), @intFromEnum(Square.h5), PieceType.Pawn);
-    board.makeMove(move);
+    // move = Move.init(@intFromEnum(Square.h7), @intFromEnum(Square.h5), PieceType.Pawn);
+    // board.makeMove(move);
     // std.debug.print("board after h5\n", .{});
     // printBitboard(board.side_bb[0] | board.side_bb[1]);
     std.debug.print("possible attack for Black now\n", .{});
