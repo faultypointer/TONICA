@@ -44,6 +44,29 @@ pub const BState = struct {
     full_move_clock: u16,
     next_move: ?Move = null,
     key: u64,
+
+    pub fn print(self: *const BState) void {
+        std.debug.print("Board State:\n", .{});
+        std.debug.print("  Turn: {}\n", .{self.turn});
+        std.debug.print("  Castling rights: 0b{b:0>4}\n", .{self.castling_rights});
+
+        if (self.en_passant) |square| {
+            std.debug.print("  En passant: {}\n", .{square});
+        } else {
+            std.debug.print("  En passant: None\n", .{});
+        }
+
+        std.debug.print("  Half move clock: {}\n", .{self.half_move_clock});
+        std.debug.print("  Full move clock: {}\n", .{self.full_move_clock});
+
+        if (self.next_move) |move| {
+            std.debug.print("  Next move: {}\n", .{move});
+        } else {
+            std.debug.print("  Next move: None\n", .{});
+        }
+
+        std.debug.print("  Zobrist Key: 0x{x:0>16}\n", .{self.key});
+    }
 };
 
 pub const Board = struct {
