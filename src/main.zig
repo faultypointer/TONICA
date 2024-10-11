@@ -12,7 +12,7 @@ const PieceType = @import("board/types.zig").PieceType;
 pub fn main() !void {
     std.debug.print("Qf7#\n", .{});
 
-    const board = Board.readFromFen("1rb1kbnr/Pppppppp/8/8/8/p1n3q1/P1PPPPPP/RNBQKBNR w KQk - 0 1");
+    const board = Board.readFromFen("rnbqkbnr/p1p1pppp/1p6/2PpP3/8/8/PP1P1PPP/RNBQKBNR w KQkq d6 0 1");
     var movgen = MovGen.init();
     // std.debug.print("Starting board\n", .{});
     // printBitboard(board.side_bb[0] | board.side_bb[1]);
@@ -24,9 +24,10 @@ pub fn main() !void {
     // board.makeMove(move);
     // std.debug.print("board after h5\n", .{});
     // printBitboard(board.side_bb[0] | board.side_bb[1]);
-    std.debug.print("possible attack for Black now\n", .{});
+    std.debug.print("possible attack for {any} now\n", .{board.state.turn});
     const moves = movgen.generateMoves(board);
     for (0..moves.len) |i| {
+        std.debug.print("==========================================================================\n", .{});
         // std.debug.print("{b:0>64}\n", .{moves.moves[i].data});
         var temp_board = board;
         temp_board.makeMove(moves.moves[i]);
