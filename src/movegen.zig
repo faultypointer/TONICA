@@ -186,7 +186,7 @@ pub const MovGen = struct {
                         var magic_index = (blockers *% BISHOP_MAGIC[sq]) >> 55;
                         const bishop_attack = self.slider_attack.bishop[sq][magic_index];
                         blockers = occupancy & ROOK_MASK[sq];
-                        magic_index = (blockers *% ROOK_MASK[sq]) >> 52;
+                        magic_index = (blockers *% ROOK_MAGIC[sq]) >> 52;
                         break :blk self.slider_attack.rook[sq][magic_index] | bishop_attack;
                     },
                     else => unreachable,
