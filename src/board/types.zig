@@ -1,6 +1,8 @@
 const std = @import("std");
 const testing = std.testing;
 
+const BitBoard = @import("../board/bitboard.zig").BitBoard;
+
 // data store the following information
 // |---------------------------------------------------------------------------|
 // | 0000 000(7) | 0  | 00 | 0  | 0  | 0  | 0  | 000 | 000 | 0000 00 | 00 0000 |
@@ -135,6 +137,9 @@ pub const PieceType = enum(u3) {
     King,
     None,
 };
+
+pub const BBRANK7: BitBoard = 0x00ff000000000000;
+pub const BBRANK2: BitBoard = 0x000000000000ff00;
 
 pub const Square = enum(u6) {
     a1,
