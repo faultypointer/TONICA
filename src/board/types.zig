@@ -46,7 +46,6 @@ pub const Move = struct {
         data |= (@as(u32, to) << 6);
         data |= (@as(u32, @intFromEnum(pce)) << 12);
         data |= @as(u32, @intFromEnum(PieceType.None)) << 15;
-        data |= PT_FLAG;
         return Move{ .data = data };
     }
     pub fn addCapturePiece(self: *Move, cap: PieceType) void {
@@ -54,6 +53,13 @@ pub const Move = struct {
         self.data &= ~@as(u32, CAP_FLAG);
         self.data |= @as(u32, @intFromEnum(cap)) << 15;
     }
+
+    pub fn addPromotion(self: *Move, pt: PieceType) void {
+        self.data |= @as(u32, 1) << 24;
+        const pt_bits: u2 = @truncate(@intFromEnum(pt) - 1);
+        self.data |= @as(u32, pt_bits) << 22;
+    }
+
     pub fn setDoubleStepFlag(self: *Move) void {
         self.data |= @as(u32, 1) << 18;
     }
@@ -102,13 +108,12 @@ pub const Move = struct {
     }
 
     pub fn promotionType(self: Move) PieceType {
-        const promotion_bits: u2 = @truncate((self.data & PT_FLAG) >> 22);
-        if (promotion_bits == 0b11) {
+        if (!self.isPromotion()) {
             return PieceType.None;
         }
-        var piece_bits: u3 = promotion_bits;
-        piece_bits += @intFromEnum(PieceType.Bishop);
-        return @enumFromInt(piece_bits);
+        var promotion_bits: u3 = @truncate((self.data & PT_FLAG) >> 22);
+        promotion_bits += @intFromEnum(PieceType.Bishop);
+        return @enumFromInt(promotion_bits);
     }
     pub fn debugPrint(self: Move) void {
         const print = std.debug.print;

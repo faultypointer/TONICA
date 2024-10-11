@@ -59,12 +59,58 @@ pub const MovGen = struct {
             movelist.addMove(move);
         }
 
+        // promotions
+        bb = pawn_bb;
+        bb &= if (us == Side.White) RANK7 else RANK2; // only pawn that will promote
+        while (bb != 0) {
+            const sq = bitboard.removeLS1B(&bb);
+            const to = if (us == Side.White) sq +% 8 else sq -% 8;
+            if ((occupancy & (@as(u64, 1) << to)) != 0) continue;
+            const promotion_types = [_]PieceType{
+                PieceType.Bishop,
+                PieceType.Knight,
+                PieceType.Rook,
+                PieceType.Queen,
+            };
+            for (promotion_types) |pt| {
+                var move = Move.init(sq, to, PieceType.Pawn);
+                move.addPromotion(pt);
+                movelist.addMove(move);
+            }
+        }
+
+        // promotion captures
+        bb = pawn_bb;
+        bb &= if (us == Side.White) RANK7 else RANK2; // only pawn that will promote
+        while (bb != 0) {
+            const sq = bitboard.removeLS1B(&bb);
+            // not enpassant and  non promotion captures
+            var possible_captures = nonsliderattack.PAWN_ATTACK[us_idx][sq] & board.side_bb[opp_idx];
+            while (possible_captures != 0) {
+                const to = bitboard.removeLS1B(&possible_captures);
+                const to_sq: Square = @enumFromInt(to);
+                const cap = board.pieceAt(to_sq, opp);
+                const promotion_types = [_]PieceType{
+                    PieceType.Bishop,
+                    PieceType.Knight,
+                    PieceType.Rook,
+                    PieceType.Queen,
+                };
+                for (promotion_types) |pt| {
+                    var move = Move.init(sq, to, PieceType.Pawn);
+                    move.addPromotion(pt);
+                    move.addCapturePiece(cap.?);
+                    movelist.addMove(move);
+                }
+            }
+        }
+
         // captures
         bb = pawn_bb;
         bb &= if (us == Side.White) ~RANK7 else ~RANK2; // remove pawn that will promote
         while (bb != 0) {
             const sq = bitboard.removeLS1B(&bb);
-            // not enpassant captures
+            // not enpassant and  non promotion captures
             var possible_captures = nonsliderattack.PAWN_ATTACK[us_idx][sq] & board.side_bb[opp_idx];
             while (possible_captures != 0) {
                 const to = bitboard.removeLS1B(&possible_captures);
