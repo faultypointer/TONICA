@@ -59,6 +59,23 @@ pub const MovGen = struct {
             movelist.addMove(move);
         }
 
+        // captures
+        bb = pawn_bb;
+        bb &= if (us == Side.White) ~RANK7 else ~RANK2; // remove pawn that will promote
+        while (bb != 0) {
+            const sq = bitboard.removeLS1B(&bb);
+            // not enpassant captures
+            var possible_captures = nonsliderattack.PAWN_ATTACK[us_idx][sq] & board.side_bb[opp_idx];
+            while (possible_captures != 0) {
+                const to = bitboard.removeLS1B(&possible_captures);
+                var move = Move.init(sq, to, PieceType.Pawn);
+                const to_sq: Square = @enumFromInt(to);
+                const cap = board.pieceAt(to_sq, opp);
+                move.addCapturePiece(cap.?);
+                movelist.addMove(move);
+            }
+        }
+
         // double push
         bb = pawn_bb;
         bb &= if (us == Side.White) RANK2 else RANK7; // double push only available on starting square
