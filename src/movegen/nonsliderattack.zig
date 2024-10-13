@@ -24,7 +24,7 @@ pub const PAWN_ATTACK = blk: {
         if ((bb & NOT_H_FILE) > 0) attack[0][i] |= (bb << 9);
     }
 
-    // TODO: Initialize black pawns (attack[1])
+    // Initialize black pawns (attack[1])
     i = 8;
     while (i < NUM_SQUARE) : (i += 1) {
         var bb: BitBoard = 0;
