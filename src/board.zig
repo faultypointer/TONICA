@@ -131,7 +131,7 @@ pub const Board = struct {
         if (us == Side.Black) self.state.full_move_clock += 1;
         const us_idx: usize = @intCast(@intFromEnum(us));
         const pcs_idx: usize = @intCast(@intFromEnum(piece));
-        move.debugPrint();
+        // move.debugPrint();
         // update bitboard for normal move
         bitboard.removePieceFromSquare(&self.piece_bb[us_idx][pcs_idx], from);
         // std.debug.print("after remove\n", .{});
