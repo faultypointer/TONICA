@@ -133,7 +133,7 @@ pub const Move = struct {
 };
 
 pub const MoveList = struct {
-    moves: [100]Move, // there is no way a position has more than 100 possible moves right??
+    moves: [265]Move, // there is no way a position has more than 100 possible moves right??
     len: usize,
 
     pub fn init() MoveList {
