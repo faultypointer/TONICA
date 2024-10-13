@@ -83,7 +83,6 @@ pub const Move = struct {
 
     pub fn capturedPiece(self: Move) PieceType {
         const p: u3 = @truncate(self.data >> 15);
-        if (self.toSquare() == Square.b6) std.debug.print("captured piece: {b}\n", .{p});
         return @enumFromInt(p);
     }
 
@@ -129,6 +128,17 @@ pub const Move = struct {
         print("Castling: {}\n", .{self.isCastling()});
         print("Promotion Type: {any}\n", .{self.promotionType()});
         print("Promotion Flag: {}\n", .{self.isPromotion()});
+    }
+
+    pub fn toPerftString(self: Move) [4]u8 {
+        var res = [_]u8{ 0, 0, 0, 0 };
+        const from = @intFromEnum(self.fromSquare());
+        const to = @intFromEnum(self.toSquare());
+        res[0] = @as(u8, (from % 8)) + 'a';
+        res[1] = @as(u8, (from / 8)) + '1';
+        res[2] = @as(u8, (to % 8)) + 'a';
+        res[3] = @as(u8, (to / 8)) + '1';
+        return res;
     }
 };
 
