@@ -17,4 +17,7 @@ pub const StateStack = struct {
         self.top -= 1;
         return self.states[self.top];
     }
+    pub fn peek(self: StateStack) Bstate {
+        return self.states[self.top - 1];
+    }
 };
