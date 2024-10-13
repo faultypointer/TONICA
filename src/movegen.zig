@@ -31,7 +31,7 @@ pub const MovGen = struct {
             .slider_attack = SliderAttack.init(),
         };
     }
-    pub fn generateMoves(self: *MovGen, board: Board) MoveList {
+    pub fn generateMoves(self: *const MovGen, board: *const Board) MoveList {
         var movelist = MoveList.init();
         self.generateSliderMoves(board, &movelist);
         self.generateKnightMoves(board, &movelist);
@@ -41,7 +41,15 @@ pub const MovGen = struct {
         return movelist;
     }
 
-    fn generatePawnMoves(_: *const MovGen, board: Board, movelist: *MoveList) void {
+    pub fn isInCheck(self: *const MovGen, board: *const Board, side: Side) bool {
+        const side_idx = @as(usize, @intFromEnum(side));
+        const king_idx = @as(usize, @intFromEnum(PieceType.King));
+        var king_bb = board.piece_bb[side_idx][king_idx];
+        const king_sq: Square = @enumFromInt(bitboard.removeLS1B(&king_bb));
+        return self.isSquareAttacked(board, king_sq, side.opponent());
+    }
+
+    fn generatePawnMoves(_: *const MovGen, board: *const Board, movelist: *MoveList) void {
         const us = board.state.turn;
         const us_idx: usize = @intCast(@intFromEnum(us));
         const opp = board.state.turn.opponent();
@@ -148,7 +156,7 @@ pub const MovGen = struct {
         }
     }
 
-    fn generateKingMoves(self: *const MovGen, board: Board, movelist: *MoveList) void {
+    fn generateKingMoves(self: *const MovGen, board: *const Board, movelist: *MoveList) void {
         const us = board.state.turn;
         const us_idx: usize = @intCast(@intFromEnum(us));
         const opp = board.state.turn.opponent();
@@ -182,14 +190,14 @@ pub const MovGen = struct {
                 // king side castle
                 if (((board.state.castling_rights & mboard.Castling_WK) != 0) and // has castling rights
                     ((occupancy & 0x60) == 0) and // and // no pieces (enemy or friend) between king and rook
-                    !(self.isSquareAttacked(board, Square.f1) or self.isSquareAttacked(board, Square.g1)))
+                    !(self.isSquareAttacked(board, Square.f1, opp) or self.isSquareAttacked(board, Square.g1, opp)))
                 {
                     movelist.addMove(types.White_King_Castle);
                 }
                 // queen side castle
                 if (((board.state.castling_rights & mboard.Castling_WQ) != 0) and // has castling rights
                     ((occupancy & 0x0E) == 0) and // no pieces (enemy or friend) between king and rook
-                    !(self.isSquareAttacked(board, Square.d1) or self.isSquareAttacked(board, Square.c1)))
+                    !(self.isSquareAttacked(board, Square.d1, opp) or self.isSquareAttacked(board, Square.c1, opp)))
                 {
                     movelist.addMove(types.White_Queen_Castle);
                 }
@@ -198,14 +206,14 @@ pub const MovGen = struct {
                 // king side castle
                 if (((board.state.castling_rights & mboard.Castling_BK) != 0) and // has castling rights
                     ((occupancy & (@as(u64, 0x60) << 56)) == 0) and // no pieces (enemy or friend) between king and rook
-                    !(self.isSquareAttacked(board, Square.f8) or self.isSquareAttacked(board, Square.g8)))
+                    !(self.isSquareAttacked(board, Square.f8, opp) or self.isSquareAttacked(board, Square.g8, opp)))
                 {
                     movelist.addMove(types.Black_King_Castle);
                 }
                 // queen side castle
                 if (((board.state.castling_rights & mboard.Castling_BQ) != 0) and // has castling rights
                     ((occupancy & (@as(u64, 0x0E) << 56)) == 0) and // no pieces (enemy or friend) between king and rook
-                    !(self.isSquareAttacked(board, Square.d8) or self.isSquareAttacked(board, Square.c8)))
+                    !(self.isSquareAttacked(board, Square.d8, opp) or self.isSquareAttacked(board, Square.c8, opp)))
                 {
                     movelist.addMove(types.Black_Queen_Castle);
                 }
@@ -213,7 +221,7 @@ pub const MovGen = struct {
         }
     }
 
-    fn generateKnightMoves(_: MovGen, board: Board, movelist: *MoveList) void {
+    fn generateKnightMoves(_: MovGen, board: *const Board, movelist: *MoveList) void {
         const us = board.state.turn;
         const us_idx: usize = @intCast(@intFromEnum(us));
         const opp = board.state.turn.opponent();
@@ -244,7 +252,7 @@ pub const MovGen = struct {
         }
     }
 
-    fn generateSliderMoves(self: *MovGen, board: Board, movelist: *MoveList) void {
+    fn generateSliderMoves(self: *const MovGen, board: *const Board, movelist: *MoveList) void {
         const us = board.state.turn;
         const us_idx: usize = @intCast(@intFromEnum(us));
         const opp = board.state.turn.opponent();
@@ -280,9 +288,9 @@ pub const MovGen = struct {
         }
     }
 
-    fn isSquareAttacked(self: *const MovGen, board: Board, square: Square) bool {
+    fn isSquareAttacked(self: *const MovGen, board: *const Board, square: Square, attacker: Side) bool {
         const sq_idx = @as(usize, @intFromEnum(square));
-        const opp_idx = @as(usize, @intFromEnum(board.state.turn.opponent()));
+        const opp_idx = @as(usize, @intFromEnum(attacker));
         const king_bb = nonsliderattack.KING_ATTACK[sq_idx];
         const knight_bb = nonsliderattack.KNIGHT_ATTACK[sq_idx];
         const pawn_bb = nonsliderattack.PAWN_ATTACK[opp_idx][sq_idx];
@@ -299,7 +307,7 @@ pub const MovGen = struct {
             ((queen_bb & board.piece_bb[opp_idx][@as(usize, @intFromEnum(PieceType.Queen))]) > 0);
     }
 
-    fn getSliderAttackBB(self: *const MovGen, board: Board, square: Square, pt: PieceType) BitBoard {
+    fn getSliderAttackBB(self: *const MovGen, board: *const Board, square: Square, pt: PieceType) BitBoard {
         const sq_idx = @as(usize, @intFromEnum(square));
         const occupancy = board.side_bb[0] | board.side_bb[1];
         return switch (pt) {
