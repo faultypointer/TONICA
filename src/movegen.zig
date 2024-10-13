@@ -163,6 +163,11 @@ pub const MovGen = struct {
         const opp_idx: usize = @intCast(@intFromEnum(opp));
         const king_idx = @as(usize, @intFromEnum(PieceType.King));
         var bb = board.piece_bb[us_idx][king_idx];
+        // if (bb == 0) {
+        //     for (1..board.state_stack.top) |i| {
+        //         board.state_stack.states[board.state_stack.top - i].next_move.?.debugPrint();
+        //     }
+        // }
         const occupancy = board.side_bb[0] | board.side_bb[1];
         const sq = bitboard.removeLS1B(&bb);
         var attack = KING_ATTACK[sq];
@@ -183,7 +188,8 @@ pub const MovGen = struct {
             move.addCapturePiece(cap.?);
             movelist.addMove(move);
         }
-
+        const king_sq = if (us == Side.White) Square.e1 else Square.e8;
+        if (self.isSquareAttacked(board, king_sq, opp)) return; // no castling on check
         // castling moves
         switch (us) {
             .White => {
@@ -291,9 +297,10 @@ pub const MovGen = struct {
     fn isSquareAttacked(self: *const MovGen, board: *const Board, square: Square, attacker: Side) bool {
         const sq_idx = @as(usize, @intFromEnum(square));
         const opp_idx = @as(usize, @intFromEnum(attacker));
+        const us_idx = @as(usize, @intFromEnum(attacker.opponent()));
         const king_bb = nonsliderattack.KING_ATTACK[sq_idx];
         const knight_bb = nonsliderattack.KNIGHT_ATTACK[sq_idx];
-        const pawn_bb = nonsliderattack.PAWN_ATTACK[opp_idx][sq_idx];
+        const pawn_bb = nonsliderattack.PAWN_ATTACK[us_idx][sq_idx];
 
         const bishop_bb = self.getSliderAttackBB(board, square, PieceType.Bishop);
         const rook_bb = self.getSliderAttackBB(board, square, PieceType.Rook);
