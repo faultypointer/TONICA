@@ -148,7 +148,7 @@ pub const MovGen = struct {
         }
     }
 
-    fn generateKingMoves(_: *const MovGen, board: Board, movelist: *MoveList) void {
+    fn generateKingMoves(self: *const MovGen, board: Board, movelist: *MoveList) void {
         const us = board.state.turn;
         const us_idx: usize = @intCast(@intFromEnum(us));
         const opp = board.state.turn.opponent();
@@ -176,39 +176,37 @@ pub const MovGen = struct {
             movelist.addMove(move);
         }
 
-        // castl
+        // castling moves
         switch (us) {
-            // NOTE WARN ive decided to check if the square king has to move throught while castling
-            // is attacked by enemy pieces or not when doing searching
             .White => {
                 // king side castle
                 if (((board.state.castling_rights & mboard.Castling_WK) != 0) and // has castling rights
-                    ((occupancy & 0x60) == 0) // and // no pieces (enemy or friend) between king and rook
-                // ((board.attacks_bb[opp_idx] & 0x60) == 0) // no enemy pieces attacks the square the king moves through
-                ) {
+                    ((occupancy & 0x60) == 0) and // and // no pieces (enemy or friend) between king and rook
+                    !(self.isSquareAttacked(board, Square.f1) or self.isSquareAttacked(board, Square.g1)))
+                {
                     movelist.addMove(types.White_King_Castle);
                 }
                 // queen side castle
                 if (((board.state.castling_rights & mboard.Castling_WQ) != 0) and // has castling rights
-                    ((occupancy & 0x0E) == 0) // and // no pieces (enemy or friend) between king and rook
-                // ((board.attacks_bb[opp_idx] & 0x0C) == 0) // no enemy pieces attacks the square the king moves through
-                ) {
+                    ((occupancy & 0x0E) == 0) and // no pieces (enemy or friend) between king and rook
+                    !(self.isSquareAttacked(board, Square.d1) or self.isSquareAttacked(board, Square.c1)))
+                {
                     movelist.addMove(types.White_Queen_Castle);
                 }
             },
             .Black => {
                 // king side castle
                 if (((board.state.castling_rights & mboard.Castling_BK) != 0) and // has castling rights
-                    ((occupancy & (@as(u64, 0x60) << 56)) == 0) // and // no pieces (enemy or friend) between king and rook
-                // ((board.attacks_bb[opp_idx] & (@as(u64, 0x60) << 56)) == 0) // no enemy pieces attacks the square the king moves through
-                ) {
+                    ((occupancy & (@as(u64, 0x60) << 56)) == 0) and // no pieces (enemy or friend) between king and rook
+                    !(self.isSquareAttacked(board, Square.f8) or self.isSquareAttacked(board, Square.g8)))
+                {
                     movelist.addMove(types.Black_King_Castle);
                 }
                 // queen side castle
                 if (((board.state.castling_rights & mboard.Castling_BQ) != 0) and // has castling rights
-                    ((occupancy & (@as(u64, 0x0E) << 56)) == 0) // and // no pieces (enemy or friend) between king and rook
-                // ((board.attacks_bb[opp_idx] & (@as(u64, 0x0C) << 56)) == 0) // no enemy pieces attacks the square the king moves through
-                ) {
+                    ((occupancy & (@as(u64, 0x0E) << 56)) == 0) and // no pieces (enemy or friend) between king and rook
+                    !(self.isSquareAttacked(board, Square.d8) or self.isSquareAttacked(board, Square.c8)))
+                {
                     movelist.addMove(types.Black_Queen_Castle);
                 }
             },
@@ -300,5 +298,50 @@ pub const MovGen = struct {
                 }
             }
         }
+    }
+
+    fn isSquareAttacked(self: *const MovGen, board: Board, square: Square) bool {
+        const sq_idx = @as(usize, @intFromEnum(square));
+        const opp_idx = @as(usize, @intFromEnum(board.state.turn.opponent()));
+        const king_bb = nonsliderattack.KING_ATTACK[sq_idx];
+        const knight_bb = nonsliderattack.KNIGHT_ATTACK[sq_idx];
+        const pawn_bb = nonsliderattack.PAWN_ATTACK[opp_idx][sq_idx];
+
+        const bishop_bb = self.getSliderAttackBB(board, square, PieceType.Bishop);
+        const rook_bb = self.getSliderAttackBB(board, square, PieceType.Rook);
+        const queen_bb = bishop_bb | rook_bb;
+
+        return ((king_bb & board.piece_bb[opp_idx][@as(usize, @intFromEnum(PieceType.King))]) > 0) or
+            ((knight_bb & board.piece_bb[opp_idx][@as(usize, @intFromEnum(PieceType.Knight))]) > 0) or
+            ((pawn_bb & board.piece_bb[opp_idx][@as(usize, @intFromEnum(PieceType.Pawn))]) > 0) or
+            ((bishop_bb & board.piece_bb[opp_idx][@as(usize, @intFromEnum(PieceType.Bishop))]) > 0) or
+            ((rook_bb & board.piece_bb[opp_idx][@as(usize, @intFromEnum(PieceType.Rook))]) > 0) or
+            ((queen_bb & board.piece_bb[opp_idx][@as(usize, @intFromEnum(PieceType.Queen))]) > 0);
+    }
+
+    fn getSliderAttackBB(self: *const MovGen, board: Board, square: Square, pt: PieceType) BitBoard {
+        const sq_idx = @as(usize, @intFromEnum(square));
+        const occupancy = board.side_bb[0] | board.side_bb[1];
+        return switch (pt) {
+            .Bishop => blk: {
+                const blockers = occupancy & BISHOP_MASK[sq_idx];
+                const magic_index = (blockers *% BISHOP_MAGIC[sq_idx]) >> 55;
+                break :blk self.slider_attack.bishop[sq_idx][magic_index];
+            },
+            .Rook => blk: {
+                const blockers = occupancy & ROOK_MASK[sq_idx];
+                const magic_index = (blockers *% ROOK_MAGIC[sq_idx]) >> 52;
+                break :blk self.slider_attack.rook[sq_idx][magic_index];
+            },
+            .Queen => blk: {
+                var blockers = occupancy & BISHOP_MASK[sq_idx];
+                var magic_index = (blockers *% BISHOP_MAGIC[sq_idx]) >> 55;
+                const bishop_attack = self.slider_attack.bishop[sq_idx][magic_index];
+                blockers = occupancy & ROOK_MASK[sq_idx];
+                magic_index = (blockers *% ROOK_MAGIC[sq_idx]) >> 52;
+                break :blk self.slider_attack.rook[sq_idx][magic_index] | bishop_attack;
+            },
+            else => unreachable,
+        };
     }
 };
