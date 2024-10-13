@@ -12,7 +12,7 @@
         (system: f { pkgs = import nixpkgs { inherit system; }; });
     in {
       devShells = forEachSupportedSystem ({ pkgs }: {
-        default = pkgs.mkShell { packages = with pkgs; [ zig zls ]; };
+        default = pkgs.mkShell { packages = with pkgs; [ zig zls stockfish ]; };
       });
     };
 }
