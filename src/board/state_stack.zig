@@ -13,7 +13,7 @@ pub const StateStack = struct {
         self.top += 1;
     }
 
-    pub fn pop(self: *StateStack) void {
+    pub fn pop(self: *StateStack) Bstate {
         self.top -= 1;
         return self.states[self.top];
     }
