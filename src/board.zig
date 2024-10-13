@@ -161,6 +161,73 @@ pub const Board = struct {
         self.state.turn = self.state.turn.opponent();
     }
 
+    pub fn unMakeMove(self: *Board) void {
+        self.state = self.state_stack.pop();
+        const last_move = self.state.next_move.?;
+
+        const from = last_move.fromSquare();
+        const to = last_move.toSquare();
+        const piece = last_move.piece();
+        const is_enpassant = last_move.isEnpassant();
+        const is_capture = last_move.isCapture();
+        const captured = last_move.capturedPiece();
+        const is_promotion = last_move.isPromotion();
+        const promoted = last_move.promotionType();
+        const is_castle = last_move.isCastling();
+
+        const us_idx = @as(usize, @intFromEnum(self.state.turn));
+        const opp_idx = @as(usize, @intFromEnum(self.state.turn.opponent()));
+        const pcs_idx = @as(usize, @intFromEnum(piece));
+        if (!is_promotion) {
+            bitboard.removePieceFromSquare(&self.piece_bb[us_idx][pcs_idx], to);
+        } else {
+            const pro_idx = @as(usize, @intFromEnum(promoted));
+            bitboard.removePieceFromSquare(&self.piece_bb[us_idx][pro_idx], to);
+        }
+        bitboard.addPieceToSquare(&self.piece_bb[us_idx][pcs_idx], from);
+
+        if (is_capture) {
+            const cap_idx = @as(usize, @intFromEnum(captured));
+            var sq = to;
+            if (is_enpassant) {
+                if (self.state.turn == Side.White) {
+                    sq = @enumFromInt(@intFromEnum(to) - 8);
+                } else {
+                    sq = @enumFromInt(@intFromEnum(to) + 8);
+                }
+            }
+            const bb = &self.piece_bb[opp_idx][cap_idx];
+            bitboard.addPieceToSquare(bb, sq);
+        }
+
+        if (is_castle) {
+            const rook_idx = @as(u64, @intFromEnum(PieceType.Rook));
+            const bb = &self.piece_bb[us_idx][rook_idx];
+            switch (to) {
+                // white castle
+                .g1 => {
+                    bitboard.removePieceFromSquare(bb, Square.f1);
+                    bitboard.addPieceToSquare(bb, Square.h1);
+                },
+                .c1 => {
+                    bitboard.removePieceFromSquare(bb, Square.d1);
+                    bitboard.addPieceToSquare(bb, Square.a1);
+                },
+                // black castle
+                .g8 => {
+                    bitboard.removePieceFromSquare(bb, Square.f8);
+                    bitboard.addPieceToSquare(bb, Square.h8);
+                },
+                .c8 => {
+                    bitboard.removePieceFromSquare(bb, Square.d8);
+                    bitboard.addPieceToSquare(bb, Square.a8);
+                },
+                else => std.debug.panic("Invalid castling square", .{}),
+            }
+        }
+        self.updateSideBitBoards();
+    }
+
     fn handlePromotionMove(self: *Board, to: Square, pt: PieceType) void {
         const side_idx = @as(usize, @intFromEnum(self.state.turn));
         const pt_idx = @as(usize, @intFromEnum(pt));
