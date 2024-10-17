@@ -39,6 +39,7 @@ pub const Black_King_Castle = Move{ .data = 0b00000000001000000101111110111100 }
 pub const Black_Queen_Castle = Move{ .data = 0b00000000001000000101111010111100 };
 pub const Move = struct {
     data: u32,
+    score: u32 = 0,
 
     pub fn init(from: u6, to: u6, pce: PieceType) Move {
         var data: u32 = 0;
