@@ -8,9 +8,11 @@ const mboard = @import("board.zig");
 const Board = mboard.Board;
 const Move = @import("board/types.zig").Move;
 const PieceType = @import("board/types.zig").PieceType;
+const MoveType = movegen.MoveType;
 const perft = @import("movegen/perft.zig");
 const eval = @import("evaluation.zig");
 const sear = @import("search.zig");
+const SearchParam = sear.SearchParams;
 
 pub fn main() !void {
     // std.debug.print("Qf7#\n", .{});
@@ -37,23 +39,20 @@ pub fn main() !void {
     // if (args.next()) |depth| {
     //     _ = try perft.runPerft(&movgen, &board, try std.fmt.parseInt(usize, depth, 10));
     // }
-    // std.debug.print("possible attack for {any} now\n", .{board.state.turn});
+    std.debug.print("possible attack for {any} now\n", .{board.state.turn});
     std.debug.print("Current Position with score: {}\n", .{eval.evaluatePosition(&board)});
     board.printBoard();
-    std.debug.print("Moves for white with scores: \n", .{});
     for (0..100) |_| {
         std.debug.print("==========================================================================\n", .{});
-        // std.debug.print("{b:0>64}\n", .{moves.moves[i].data});
-        const res = sear.search(&board, &movgen, 8);
-        std.debug.print("The best move for position is: \n", .{});
+        const params = SearchParam{
+            .board = &board,
+            .movgen = &movgen,
+            .time = 10000000000, // 10 sec
+        };
+        const res = sear.search(params);
         res.best_move.debugPrint();
-        std.debug.print("After making move: \n", .{});
         board.makeMove(res.best_move);
-        // printBitboard(board.side_bb[0] | board.side_bb[1]);
         board.printBoard();
-        // board.state.print();
-        // std.debug.print("Is King in check: {any}\n", .{movgen.isInCheck(&board, board.state.turn.opponent())});
-        std.debug.print("Score: {}\n", .{eval.evaluatePosition(&board)});
         _ = std.io.getStdIn().reader().readByte() catch unreachable;
     }
 }
