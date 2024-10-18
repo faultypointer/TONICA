@@ -6,6 +6,7 @@ const MovGen = @import("../movegen.zig").MovGen;
 const Board = @import("../board.zig").Board;
 const Move = @import("../board/types.zig").Move;
 const PieceType = @import("../board/types.zig").PieceType;
+const MoveType = @import("../movegen.zig").MoveType;
 const bitboard = @import("../board//bitboard.zig");
 
 fn perft(movgen: *const MovGen, board: *Board, depth: usize) u64 {
@@ -13,7 +14,7 @@ fn perft(movgen: *const MovGen, board: *Board, depth: usize) u64 {
 
     if (depth == 0) return 1;
 
-    const movelist = movgen.generateMoves(board);
+    const movelist = movgen.generateMoves(board, MoveType.All);
     for (0..movelist.len) |i| {
         board.makeMove(movelist.moves[i]);
         if (!movgen.isInCheck(board, board.state.turn.opponent())) {
@@ -43,7 +44,7 @@ pub fn runPerft(movgen: *const MovGen, board: *Board, depth: usize) !void {
 
 pub fn divide(movgen: *const MovGen, board: *Board, depth: usize) !u64 {
     var total_nodes: u64 = 0;
-    const movelist = movgen.generateMoves(board);
+    const movelist = movgen.generateMoves(board, MoveType.All);
 
     for (0..movelist.len) |i| {
         const move = movelist.moves[i];

@@ -23,6 +23,13 @@ const Board = mboard.Board;
 
 const bitboard = @import("board/bitboard.zig");
 const BitBoard = bitboard.BitBoard;
+
+pub const MoveType = enum {
+    Quiet,
+    Capture,
+    All,
+};
+
 pub const MovGen = struct {
     slider_attack: SliderAttack,
 
@@ -31,12 +38,12 @@ pub const MovGen = struct {
             .slider_attack = SliderAttack.init(),
         };
     }
-    pub fn generateMoves(self: *const MovGen, board: *const Board) MoveList {
+    pub fn generateMoves(self: *const MovGen, board: *const Board, mt: MoveType) MoveList {
         var movelist = MoveList.init();
-        self.generateSliderMoves(board, &movelist);
-        self.generateKnightMoves(board, &movelist);
-        self.generateKingMoves(board, &movelist);
-        self.generatePawnMoves(board, &movelist);
+        self.generateSliderMoves(board, &movelist, mt);
+        self.generateKnightMoves(board, &movelist, mt);
+        self.generateKingMoves(board, &movelist, mt);
+        self.generatePawnMoves(board, &movelist, mt);
 
         return movelist;
     }
@@ -49,7 +56,7 @@ pub const MovGen = struct {
         return self.isSquareAttacked(board, king_sq, side.opponent());
     }
 
-    fn generatePawnMoves(_: *const MovGen, board: *const Board, movelist: *MoveList) void {
+    fn generatePawnMoves(_: *const MovGen, board: *const Board, movelist: *MoveList, mt: MoveType) void {
         const us = board.state.turn;
         const us_idx: usize = @intCast(@intFromEnum(us));
         const opp = board.state.turn.opponent();
@@ -59,45 +66,22 @@ pub const MovGen = struct {
         // single push no promotion
         var bb = pawn_bb;
         bb &= if (us == Side.White) ~RANK7 else ~RANK2; // remove pawn that will promote
-        while (bb != 0) {
-            const sq = bitboard.removeLS1B(&bb);
-            const to = if (us == Side.White) sq +% 8 else sq -% 8;
-            if ((occupancy & (@as(u64, 1) << to)) != 0) continue;
-            const move = Move.init(sq, to, PieceType.Pawn);
-            movelist.addMove(move);
-        }
-
-        // promotions
-        bb = pawn_bb;
-        bb &= if (us == Side.White) RANK7 else RANK2; // only pawn that will promote
-        while (bb != 0) {
-            const sq = bitboard.removeLS1B(&bb);
-            const to = if (us == Side.White) sq +% 8 else sq -% 8;
-            if ((occupancy & (@as(u64, 1) << to)) != 0) continue;
-            const promotion_types = [_]PieceType{
-                PieceType.Bishop,
-                PieceType.Knight,
-                PieceType.Rook,
-                PieceType.Queen,
-            };
-            for (promotion_types) |pt| {
-                var move = Move.init(sq, to, PieceType.Pawn);
-                move.addPromotion(pt);
+        if (mt != MoveType.Capture) {
+            while (bb != 0) {
+                const sq = bitboard.removeLS1B(&bb);
+                const to = if (us == Side.White) sq +% 8 else sq -% 8;
+                if ((occupancy & (@as(u64, 1) << to)) != 0) continue;
+                const move = Move.init(sq, to, PieceType.Pawn);
                 movelist.addMove(move);
             }
-        }
 
-        // promotion captures
-        bb = pawn_bb;
-        bb &= if (us == Side.White) RANK7 else RANK2; // only pawn that will promote
-        while (bb != 0) {
-            const sq = bitboard.removeLS1B(&bb);
-            // not enpassant and  non promotion captures
-            var possible_captures = nonsliderattack.PAWN_ATTACK[us_idx][sq] & board.side_bb[opp_idx];
-            while (possible_captures != 0) {
-                const to = bitboard.removeLS1B(&possible_captures);
-                const to_sq: Square = @enumFromInt(to);
-                const cap = board.pieceAt(to_sq, opp);
+            // promotions
+            bb = pawn_bb;
+            bb &= if (us == Side.White) RANK7 else RANK2; // only pawn that will promote
+            while (bb != 0) {
+                const sq = bitboard.removeLS1B(&bb);
+                const to = if (us == Side.White) sq +% 8 else sq -% 8;
+                if ((occupancy & (@as(u64, 1) << to)) != 0) continue;
                 const promotion_types = [_]PieceType{
                     PieceType.Bishop,
                     PieceType.Knight,
@@ -107,56 +91,82 @@ pub const MovGen = struct {
                 for (promotion_types) |pt| {
                     var move = Move.init(sq, to, PieceType.Pawn);
                     move.addPromotion(pt);
+                    movelist.addMove(move);
+                }
+            }
+            // double push
+            bb = pawn_bb;
+            bb &= if (us == Side.White) RANK2 else RANK7; // double push only available on starting square
+            while (bb != 0) {
+                const sq = bitboard.removeLS1B(&bb);
+                const to = if (us == Side.White) sq +% 16 else sq -% 16;
+                var pawn_blockers = @as(u64, 0x101);
+                pawn_blockers <<= if (us == Side.White) (to - 8) else to;
+                if ((occupancy & pawn_blockers) != 0) continue;
+                var move = Move.init(sq, to, PieceType.Pawn);
+                move.setDoubleStepFlag();
+                movelist.addMove(move);
+            }
+        }
+
+        if (mt != MoveType.Quiet) {
+            // promotion captures
+            bb = pawn_bb;
+            bb &= if (us == Side.White) RANK7 else RANK2; // only pawn that will promote
+            while (bb != 0) {
+                const sq = bitboard.removeLS1B(&bb);
+                // not enpassant and  non promotion captures
+                var possible_captures = nonsliderattack.PAWN_ATTACK[us_idx][sq] & board.side_bb[opp_idx];
+                while (possible_captures != 0) {
+                    const to = bitboard.removeLS1B(&possible_captures);
+                    const to_sq: Square = @enumFromInt(to);
+                    const cap = board.pieceAt(to_sq, opp);
+                    const promotion_types = [_]PieceType{
+                        PieceType.Bishop,
+                        PieceType.Knight,
+                        PieceType.Rook,
+                        PieceType.Queen,
+                    };
+                    for (promotion_types) |pt| {
+                        var move = Move.init(sq, to, PieceType.Pawn);
+                        move.addPromotion(pt);
+                        move.addCapturePiece(cap.?);
+                        movelist.addMove(move);
+                    }
+                }
+            }
+
+            // captures
+            bb = pawn_bb;
+            bb &= if (us == Side.White) ~RANK7 else ~RANK2; // remove pawn that will promote
+            while (bb != 0) {
+                const sq = bitboard.removeLS1B(&bb);
+                // not enpassant and  non promotion captures
+                var possible_captures = nonsliderattack.PAWN_ATTACK[us_idx][sq] & board.side_bb[opp_idx];
+                while (possible_captures != 0) {
+                    const to = bitboard.removeLS1B(&possible_captures);
+                    var move = Move.init(sq, to, PieceType.Pawn);
+                    const to_sq: Square = @enumFromInt(to);
+                    const cap = board.pieceAt(to_sq, opp);
                     move.addCapturePiece(cap.?);
                     movelist.addMove(move);
                 }
-            }
-        }
 
-        // captures
-        bb = pawn_bb;
-        bb &= if (us == Side.White) ~RANK7 else ~RANK2; // remove pawn that will promote
-        while (bb != 0) {
-            const sq = bitboard.removeLS1B(&bb);
-            // not enpassant and  non promotion captures
-            var possible_captures = nonsliderattack.PAWN_ATTACK[us_idx][sq] & board.side_bb[opp_idx];
-            while (possible_captures != 0) {
-                const to = bitboard.removeLS1B(&possible_captures);
-                var move = Move.init(sq, to, PieceType.Pawn);
-                const to_sq: Square = @enumFromInt(to);
-                const cap = board.pieceAt(to_sq, opp);
-                move.addCapturePiece(cap.?);
-                movelist.addMove(move);
-            }
-
-            // en_passant capture
-            if (board.state.en_passant) |square| {
-                const sq_idx = @intFromEnum(square);
-                if (nonsliderattack.PAWN_ATTACK[us_idx][sq] & (@as(u64, 1) << sq_idx) != 0) {
-                    var move = Move.init(sq, sq_idx, PieceType.Pawn);
-                    move.addCapturePiece(PieceType.Pawn);
-                    move.setEnPassantFlag();
-                    movelist.addMove(move);
+                // en_passant capture
+                if (board.state.en_passant) |square| {
+                    const sq_idx = @intFromEnum(square);
+                    if (nonsliderattack.PAWN_ATTACK[us_idx][sq] & (@as(u64, 1) << sq_idx) != 0) {
+                        var move = Move.init(sq, sq_idx, PieceType.Pawn);
+                        move.addCapturePiece(PieceType.Pawn);
+                        move.setEnPassantFlag();
+                        movelist.addMove(move);
+                    }
                 }
             }
         }
-
-        // double push
-        bb = pawn_bb;
-        bb &= if (us == Side.White) RANK2 else RANK7; // double push only available on starting square
-        while (bb != 0) {
-            const sq = bitboard.removeLS1B(&bb);
-            const to = if (us == Side.White) sq +% 16 else sq -% 16;
-            var pawn_blockers = @as(u64, 0x101);
-            pawn_blockers <<= if (us == Side.White) (to - 8) else to;
-            if ((occupancy & pawn_blockers) != 0) continue;
-            var move = Move.init(sq, to, PieceType.Pawn);
-            move.setDoubleStepFlag();
-            movelist.addMove(move);
-        }
     }
 
-    fn generateKingMoves(self: *const MovGen, board: *const Board, movelist: *MoveList) void {
+    fn generateKingMoves(self: *const MovGen, board: *const Board, movelist: *MoveList, mt: MoveType) void {
         const us = board.state.turn;
         const us_idx: usize = @intCast(@intFromEnum(us));
         const opp = board.state.turn.opponent();
@@ -176,58 +186,62 @@ pub const MovGen = struct {
         // captures
         var captures = attack & board.side_bb[opp_idx];
 
-        while (empty_squares != 0) {
-            const to = bitboard.removeLS1B(&empty_squares);
-            movelist.addMove(Move.init(sq, to, PieceType.King));
+        if (mt != MoveType.Capture) {
+            while (empty_squares != 0) {
+                const to = bitboard.removeLS1B(&empty_squares);
+                movelist.addMove(Move.init(sq, to, PieceType.King));
+            }
+            const king_sq = if (us == Side.White) Square.e1 else Square.e8;
+            if (self.isSquareAttacked(board, king_sq, opp)) return; // no castling on check
+            // castling moves
+            switch (us) {
+                .White => {
+                    // king side castle
+                    if (((board.state.castling_rights & mboard.Castling_WK) != 0) and // has castling rights
+                        ((occupancy & 0x60) == 0) and // and // no pieces (enemy or friend) between king and rook
+                        !(self.isSquareAttacked(board, Square.f1, opp) or self.isSquareAttacked(board, Square.g1, opp)))
+                    {
+                        movelist.addMove(types.White_King_Castle);
+                    }
+                    // queen side castle
+                    if (((board.state.castling_rights & mboard.Castling_WQ) != 0) and // has castling rights
+                        ((occupancy & 0x0E) == 0) and // no pieces (enemy or friend) between king and rook
+                        !(self.isSquareAttacked(board, Square.d1, opp) or self.isSquareAttacked(board, Square.c1, opp)))
+                    {
+                        movelist.addMove(types.White_Queen_Castle);
+                    }
+                },
+                .Black => {
+                    // king side castle
+                    if (((board.state.castling_rights & mboard.Castling_BK) != 0) and // has castling rights
+                        ((occupancy & (@as(u64, 0x60) << 56)) == 0) and // no pieces (enemy or friend) between king and rook
+                        !(self.isSquareAttacked(board, Square.f8, opp) or self.isSquareAttacked(board, Square.g8, opp)))
+                    {
+                        movelist.addMove(types.Black_King_Castle);
+                    }
+                    // queen side castle
+                    if (((board.state.castling_rights & mboard.Castling_BQ) != 0) and // has castling rights
+                        ((occupancy & (@as(u64, 0x0E) << 56)) == 0) and // no pieces (enemy or friend) between king and rook
+                        !(self.isSquareAttacked(board, Square.d8, opp) or self.isSquareAttacked(board, Square.c8, opp)))
+                    {
+                        movelist.addMove(types.Black_Queen_Castle);
+                    }
+                },
+            }
         }
-        while (captures != 0) {
-            const to = bitboard.removeLS1B(&captures);
-            var move = Move.init(sq, to, PieceType.King);
-            const to_sq: Square = @enumFromInt(to);
-            const cap = board.pieceAt(to_sq, opp);
-            move.addCapturePiece(cap.?);
-            movelist.addMove(move);
-        }
-        const king_sq = if (us == Side.White) Square.e1 else Square.e8;
-        if (self.isSquareAttacked(board, king_sq, opp)) return; // no castling on check
-        // castling moves
-        switch (us) {
-            .White => {
-                // king side castle
-                if (((board.state.castling_rights & mboard.Castling_WK) != 0) and // has castling rights
-                    ((occupancy & 0x60) == 0) and // and // no pieces (enemy or friend) between king and rook
-                    !(self.isSquareAttacked(board, Square.f1, opp) or self.isSquareAttacked(board, Square.g1, opp)))
-                {
-                    movelist.addMove(types.White_King_Castle);
-                }
-                // queen side castle
-                if (((board.state.castling_rights & mboard.Castling_WQ) != 0) and // has castling rights
-                    ((occupancy & 0x0E) == 0) and // no pieces (enemy or friend) between king and rook
-                    !(self.isSquareAttacked(board, Square.d1, opp) or self.isSquareAttacked(board, Square.c1, opp)))
-                {
-                    movelist.addMove(types.White_Queen_Castle);
-                }
-            },
-            .Black => {
-                // king side castle
-                if (((board.state.castling_rights & mboard.Castling_BK) != 0) and // has castling rights
-                    ((occupancy & (@as(u64, 0x60) << 56)) == 0) and // no pieces (enemy or friend) between king and rook
-                    !(self.isSquareAttacked(board, Square.f8, opp) or self.isSquareAttacked(board, Square.g8, opp)))
-                {
-                    movelist.addMove(types.Black_King_Castle);
-                }
-                // queen side castle
-                if (((board.state.castling_rights & mboard.Castling_BQ) != 0) and // has castling rights
-                    ((occupancy & (@as(u64, 0x0E) << 56)) == 0) and // no pieces (enemy or friend) between king and rook
-                    !(self.isSquareAttacked(board, Square.d8, opp) or self.isSquareAttacked(board, Square.c8, opp)))
-                {
-                    movelist.addMove(types.Black_Queen_Castle);
-                }
-            },
+        if (mt != MoveType.Quiet) {
+            while (captures != 0) {
+                const to = bitboard.removeLS1B(&captures);
+                var move = Move.init(sq, to, PieceType.King);
+                const to_sq: Square = @enumFromInt(to);
+                const cap = board.pieceAt(to_sq, opp);
+                move.addCapturePiece(cap.?);
+                movelist.addMove(move);
+            }
         }
     }
 
-    fn generateKnightMoves(_: MovGen, board: *const Board, movelist: *MoveList) void {
+    fn generateKnightMoves(_: MovGen, board: *const Board, movelist: *MoveList, mt: MoveType) void {
         const us = board.state.turn;
         const us_idx: usize = @intCast(@intFromEnum(us));
         const opp = board.state.turn.opponent();
@@ -243,22 +257,26 @@ pub const MovGen = struct {
             // captures
             var captures = attack & board.side_bb[opp_idx];
 
-            while (empty_squares != 0) {
-                const to = bitboard.removeLS1B(&empty_squares);
-                movelist.addMove(Move.init(sq, to, PieceType.Knight));
+            if (mt != MoveType.Capture) {
+                while (empty_squares != 0) {
+                    const to = bitboard.removeLS1B(&empty_squares);
+                    movelist.addMove(Move.init(sq, to, PieceType.Knight));
+                }
             }
-            while (captures != 0) {
-                const to = bitboard.removeLS1B(&captures);
-                var move = Move.init(sq, to, PieceType.Knight);
-                const to_sq: Square = @enumFromInt(to);
-                const cap = board.pieceAt(to_sq, opp);
-                move.addCapturePiece(cap.?);
-                movelist.addMove(move);
+            if (mt != MoveType.Quiet) {
+                while (captures != 0) {
+                    const to = bitboard.removeLS1B(&captures);
+                    var move = Move.init(sq, to, PieceType.Knight);
+                    const to_sq: Square = @enumFromInt(to);
+                    const cap = board.pieceAt(to_sq, opp);
+                    move.addCapturePiece(cap.?);
+                    movelist.addMove(move);
+                }
             }
         }
     }
 
-    fn generateSliderMoves(self: *const MovGen, board: *const Board, movelist: *MoveList) void {
+    fn generateSliderMoves(self: *const MovGen, board: *const Board, movelist: *MoveList, mt: MoveType) void {
         const us = board.state.turn;
         const us_idx: usize = @intCast(@intFromEnum(us));
         const opp = board.state.turn.opponent();
@@ -278,17 +296,21 @@ pub const MovGen = struct {
                 // captures
                 var captures = attack & board.side_bb[opp_idx];
 
-                while (empty_squares != 0) {
-                    const to = bitboard.removeLS1B(&empty_squares);
-                    movelist.addMove(Move.init(sq, to, slider));
+                if (mt != MoveType.Capture) {
+                    while (empty_squares != 0) {
+                        const to = bitboard.removeLS1B(&empty_squares);
+                        movelist.addMove(Move.init(sq, to, slider));
+                    }
                 }
-                while (captures != 0) {
-                    const to = bitboard.removeLS1B(&captures);
-                    var move = Move.init(sq, to, slider);
-                    const to_sq: Square = @enumFromInt(to);
-                    const cap = board.pieceAt(to_sq, opp);
-                    move.addCapturePiece(cap.?);
-                    movelist.addMove(move);
+                if (mt != MoveType.Quiet) {
+                    while (captures != 0) {
+                        const to = bitboard.removeLS1B(&captures);
+                        var move = Move.init(sq, to, slider);
+                        const to_sq: Square = @enumFromInt(to);
+                        const cap = board.pieceAt(to_sq, opp);
+                        move.addCapturePiece(cap.?);
+                        movelist.addMove(move);
+                    }
                 }
             }
         }
