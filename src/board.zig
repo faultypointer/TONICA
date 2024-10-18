@@ -40,7 +40,7 @@ pub const BState = struct {
     turn: Side,
     castling_rights: u8,
     en_passant: ?Square,
-    half_move_clock: u8,
+    half_move_clock: u16,
     full_move_clock: u16,
     next_move: ?Move = null,
     key: u64,
@@ -240,6 +240,7 @@ pub const Board = struct {
     }
 
     fn handleCaptureMove(self: *Board, to: Square, cap: PieceType, is_enpassant: bool) void {
+        self.state.half_move_clock = 0;
         const opp = self.state.turn.opponent();
         const opp_idx = @as(usize, @intFromEnum(opp));
         const cap_idx = @as(usize, @intFromEnum(cap));
