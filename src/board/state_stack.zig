@@ -1,6 +1,6 @@
 const Bstate = @import("../board.zig").BState;
 
-pub const BSTATE_STACK_SIZE: usize = 1024;
+pub const BSTATE_STACK_SIZE: usize = 2048;
 
 // a stack to hold the previous board states
 // the number of elements in the can be directly accessed through the states feild's len property
