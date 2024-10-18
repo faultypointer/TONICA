@@ -111,7 +111,6 @@ fn quiescence(params: *SearchParams, res: *SearchResult, A: i32, beta: i32, qdep
     }
     const captures = movgen.generateMoves(board, MoveType.Capture);
     for (0..captures.len) |i| {
-        std.debug.print("no of capture moves: {}    stack size: {}, depth: {}\n", .{ captures.len, board.state_stack.top, qdepth });
         board.makeMove(captures.moves[i]);
         if (movgen.isInCheck(board, board.state.turn.opponent())) {
             board.unMakeMove();
