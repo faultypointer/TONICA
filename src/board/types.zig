@@ -67,6 +67,9 @@ pub const Move = struct {
     pub fn setEnPassantFlag(self: *Move) void {
         self.data |= @as(u32, 1) << 19;
     }
+    pub fn setCastlingFlag(self: *Move) void {
+        self.data |= @as(u32, 1) << 21;
+    }
     pub fn fromSquare(self: Move) Square {
         const sq: u6 = @truncate(self.data & FROM_FLAG);
         return @enumFromInt(sq);
@@ -131,15 +134,25 @@ pub const Move = struct {
         print("Promotion Flag: {}\n", .{self.isPromotion()});
     }
 
-    pub fn toPerftString(self: Move) [4]u8 {
-        var res = [_]u8{ 0, 0, 0, 0 };
+    // fills buffer with uci string of move
+    // returns if the move was promotion or not (if not only 4 bytes were written)
+    pub fn toUciString(self: Move, buff: *[5]u8) bool {
         const from = @intFromEnum(self.fromSquare());
         const to = @intFromEnum(self.toSquare());
-        res[0] = @as(u8, (from % 8)) + 'a';
-        res[1] = @as(u8, (from / 8)) + '1';
-        res[2] = @as(u8, (to % 8)) + 'a';
-        res[3] = @as(u8, (to / 8)) + '1';
-        return res;
+        buff[0] = @as(u8, (from % 8)) + 'a';
+        buff[1] = @as(u8, (from / 8)) + '1';
+        buff[2] = @as(u8, (to % 8)) + 'a';
+        buff[3] = @as(u8, (to / 8)) + '1';
+        if (self.isPromotion()) {
+            switch (self.promotionType()) {
+                .Bishop => buff[4] = 'b',
+                .Knight => buff[4] = 'n',
+                .Rook => buff[4] = 'r',
+                .Queen => buff[4] = 'q',
+                else => std.debug.panic("unknown promotion peice type", .{}),
+            }
+        }
+        return self.isPromotion();
     }
 };
 
