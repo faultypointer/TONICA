@@ -49,7 +49,7 @@ pub const Engine = struct {
                 .isready => try self.handleIsReady(),
                 .ucinewgame => self.handleUciNewGame(),
                 .position => try self.handlePosition(&tokens),
-                .go => self.handleGo(),
+                .go => self.handleGo(&tokens),
                 .quit => break,
                 // debug
                 .eval => self.debugHandleEval(),
@@ -107,16 +107,16 @@ pub const Engine = struct {
         }
     }
 
-    fn handleGo(self: *Engine) !void {
+    fn handleGo(self: *Engine, tokens: *SplitIter) !void {
         // const params = SearchParam{
         //     .board = &self.board,
         //     .movgen = &self.mg,
         //     .depth = 5,
         // };
-
+        _ = tokens;
         var move_string = [_]u8{ 0, 0, 0, 0, 0 };
 
-        const res = sear.search(&self.board, &self.mg, 4);
+        const res = sear.search(&self.board, &self.mg, 8);
         if (res.best_move.data == 0) {
             try stdout.print("bestmove 0000\n", .{});
         }
@@ -156,7 +156,7 @@ pub const Engine = struct {
             const move = try parse.parseUciMove(movestr, &self.board);
             self.board.makeMove(move);
             self.board.printBoard();
-            const res = sear.search(&self.board, &self.mg, 5);
+            const res = sear.search(&self.board, &self.mg, 8);
             try stdout.print("playing move with score {} after searching nodes: {}\n", .{ res.best_score, res.nodes_searched });
             self.board.makeMove(res.best_move);
             self.board.printBoard();
