@@ -186,6 +186,16 @@ pub const MovGen = struct {
         // captures
         var captures = attack & board.side_bb[opp_idx];
 
+        if (mt != MoveType.Quiet) {
+            while (captures != 0) {
+                const to = bitboard.removeLS1B(&captures);
+                var move = Move.init(sq, to, PieceType.King);
+                const to_sq: Square = @enumFromInt(to);
+                const cap = board.pieceAt(to_sq, opp);
+                move.addCapturePiece(cap.?);
+                movelist.addMove(move);
+            }
+        }
         if (mt != MoveType.Capture) {
             while (empty_squares != 0) {
                 const to = bitboard.removeLS1B(&empty_squares);
@@ -227,16 +237,6 @@ pub const MovGen = struct {
                         movelist.addMove(types.Black_Queen_Castle);
                     }
                 },
-            }
-        }
-        if (mt != MoveType.Quiet) {
-            while (captures != 0) {
-                const to = bitboard.removeLS1B(&captures);
-                var move = Move.init(sq, to, PieceType.King);
-                const to_sq: Square = @enumFromInt(to);
-                const cap = board.pieceAt(to_sq, opp);
-                move.addCapturePiece(cap.?);
-                movelist.addMove(move);
             }
         }
     }
