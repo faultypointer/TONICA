@@ -120,7 +120,6 @@ pub const Engine = struct {
         if (res.best_move.data == 0) {
             try stdout.print("bestmove 0000\n", .{});
         }
-        // std.debug.print("total node searched: {}\n", .{res.nodes_searched});
         const has_promo = res.best_move.toUciString(&move_string);
         try stdout.print("bestmove {s}\n", .{if (has_promo) move_string[0..] else move_string[0..4]});
     }

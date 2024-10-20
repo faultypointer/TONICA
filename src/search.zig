@@ -47,11 +47,15 @@ fn negamax(board: *Board, mg: *const MovGen, res: *SearchResult, alpha: i32, bet
         const move = movelist.moves[i];
         res.ply += 1;
         board.makeMove(move);
+        // std.debug.print("available pseudo moves\n", .{});
+        // board.printBoard();
         if (mg.isInCheck(board, board.state.turn.opponent())) {
             board.unMakeMove();
             res.ply -= 1;
             continue;
         }
+        // std.debug.print("legal move\n", .{});
+        // _ = std.io.getStdIn().reader().readByte() catch unreachable;
         legal_moves += 1;
         const score = -negamax(board, mg, res, -beta, -mut_alpha, depth - 1);
         board.unMakeMove();
