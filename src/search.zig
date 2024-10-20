@@ -41,7 +41,9 @@ fn negamax(board: *Board, mg: *const MovGen, res: *SearchResult, alpha: i32, bet
     const in_check = mg.isInCheck(board, board.state.turn);
     var legal_moves: u8 = 0;
     res.nodes_searched += 1;
-    const movelist = mg.generateMoves(board, .All);
+    var movelist = mg.generateMoves(board, .All);
+    sort.scoreMoves(&movelist);
+    sort.sortMoveList(&movelist);
 
     for (0..movelist.len) |i| {
         const move = movelist.moves[i];
@@ -80,6 +82,7 @@ fn negamax(board: *Board, mg: *const MovGen, res: *SearchResult, alpha: i32, bet
 
 fn quiescence(board: *Board, mg: *const MovGen, res: *SearchResult, alpha: i32, beta: i32) i32 {
     var mut_alpha = alpha;
+    res.nodes_searched += 1;
 
     const evaluation = eval.evaluatePosition(board);
 
@@ -89,7 +92,9 @@ fn quiescence(board: *Board, mg: *const MovGen, res: *SearchResult, alpha: i32, 
         mut_alpha = evaluation;
     }
 
-    const movelist = mg.generateMoves(board, .Capture);
+    var movelist = mg.generateMoves(board, .Capture);
+    sort.scoreMoves(&movelist);
+    sort.sortMoveList(&movelist);
     for (0..movelist.len) |i| {
         const move = movelist.moves[i];
         res.ply += 1;
