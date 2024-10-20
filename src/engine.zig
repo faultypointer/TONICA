@@ -7,7 +7,6 @@ const Board = @import("board.zig").Board;
 const MovGen = @import("movegen.zig").MovGen;
 const sear = @import("search.zig");
 const eval = @import("evaluation.zig");
-const SearchParam = sear.SearchParams;
 const parse = @import("board/parse.zig");
 
 const UciCommands = enum {
@@ -17,6 +16,11 @@ const UciCommands = enum {
     position,
     go,
     quit,
+
+    // debug commands
+    eval,
+    search,
+    play,
 };
 pub const Engine = struct {
     board: Board,
@@ -47,6 +51,10 @@ pub const Engine = struct {
                 .position => try self.handlePosition(&tokens),
                 .go => self.handleGo(),
                 .quit => break,
+                // debug
+                .eval => self.debugHandleEval(),
+                .search => self.debugHandleSearch(),
+                .play => self.debugPlay(),
             };
             buffer_fbs.reset();
         }
@@ -100,15 +108,15 @@ pub const Engine = struct {
     }
 
     fn handleGo(self: *Engine) !void {
-        const params = SearchParam{
-            .board = &self.board,
-            .movgen = &self.mg,
-            .depth = 5,
-        };
+        // const params = SearchParam{
+        //     .board = &self.board,
+        //     .movgen = &self.mg,
+        //     .depth = 5,
+        // };
 
         var move_string = [_]u8{ 0, 0, 0, 0, 0 };
 
-        const res = sear.search(params);
+        const res = sear.search(&self.board, &self.mg, 4);
         if (res.best_move.data == 0) {
             try stdout.print("bestmove 0000\n", .{});
         }
@@ -117,45 +125,43 @@ pub const Engine = struct {
         try stdout.print("bestmove {s}\n", .{if (has_promo) move_string[0..] else move_string[0..4]});
     }
 
-    pub fn testEvaluation(self: *Engine) !void {
-        var buffer: [10]u8 = undefined;
+    // debug commands
+    fn debugHandleEval(self: *Engine) !void {
+        const evalScore = eval.evaluatePosition(&self.board);
+        self.board.printBoard();
+        try stdout.print("Score: {} for side: {any}\n", .{ evalScore, self.board.state.turn });
+    }
+
+    fn debugHandleSearch(self: *Engine) !void {
+        for (1..6) |depth| {
+            var move_string = [_]u8{ 0, 0, 0, 0, 0 };
+
+            const res = sear.search(&self.board, &self.mg, @intCast(depth));
+            if (res.best_move.data == 0) {
+                try stdout.print("bestmove 0000 at depth: {}\n", .{depth});
+                continue;
+            }
+            // std.debug.print("total node searched: {}\n", .{res.nodes_searched});
+            const has_promo = res.best_move.toUciString(&move_string);
+            try stdout.print("bestmove {s} at depth: {} score: {}\n", .{ if (has_promo) move_string[0..] else move_string[0..4], depth, res.best_score });
+        }
+    }
+    fn debugPlay(self: *Engine) !void {
+        var buffer: [1024]u8 = undefined;
         var buffer_fbs = std.io.fixedBufferStream(&buffer);
         const writer = buffer_fbs.writer();
+        self.board.printBoard();
         while (true) {
-            self.board.state.print();
-            self.board.printBoard();
-            for (0..5) |i| {
-                const params = SearchParam{
-                    .board = &self.board,
-                    .movgen = &self.mg,
-                    .depth = @truncate(i),
-                };
-                var result = sear.SearchResult{
-                    .best_score = -0xffffff,
-                    .best_move = .{
-                        .data = 0,
-                    },
-                    .nodes_searched = 0,
-                    .time = std.time.Timer.start() catch unreachable,
-                };
-                std.debug.print("Current eval at depth {}: {}\n", .{ i, sear.alphabeta(params, &result, -0xffffff, 0xffffff, params.depth) });
-            }
             try stdin.streamUntilDelimiter(writer, '\n', buffer.len);
             const movestr = buffer_fbs.getWritten();
-            buffer_fbs.reset();
             const move = try parse.parseUciMove(movestr, &self.board);
-            std.debug.print("Making move: \n", .{});
-            move.debugPrint();
             self.board.makeMove(move);
-            std.debug.print("Searching for move: ", .{});
-            const params = SearchParam{
-                .board = &self.board,
-                .movgen = &self.mg,
-                .time = 10000000000,
-                .depth = 5,
-            };
-            const res = sear.search(params);
+            self.board.printBoard();
+            const res = sear.search(&self.board, &self.mg, 5);
+            try stdout.print("playing move with score {} after searching nodes: {}\n", .{ res.best_score, res.nodes_searched });
             self.board.makeMove(res.best_move);
+            self.board.printBoard();
+            buffer_fbs.reset();
         }
     }
 };
