@@ -9,16 +9,31 @@ const MaterialScore = [_]i32{
     100, // pawn
     330, // bishop
     350, // knight
-    480, // rook
-    920, // queen
-    100000, // king
+    500, // rook
+    1000, // queen
+    10000, // king
 };
 
 pub fn evaluatePosition(board: *const Board) i32 {
     var score: i32 = 0;
+    score += pieceCount(board);
     score += pestoEval(board);
 
     return score;
+}
+
+pub fn pieceCount(board: *const Board) i32 {
+    var scores = [_]i32{ 0, 0 };
+    for (0..2) |side_idx| {
+        for (0..NUM_PIECE) |pcs_idx| {
+            var bb = board.piece_bb[side_idx][pcs_idx];
+            while (bb != 0) {
+                _ = bitboard.removeLS1B(&bb);
+                scores[side_idx] += MaterialScore[pcs_idx];
+            }
+        }
+    }
+    return if (board.state.turn == .White) scores[0] - scores[1] else scores[1] - scores[0];
 }
 
 fn pestoEval(board: *const Board) i32 {
@@ -33,8 +48,8 @@ fn pestoEval(board: *const Board) i32 {
         var bb = board.piece_bb[0][pcx_idx];
         while (bb != 0) {
             const sq = tableIndexFlipped(bitboard.removeLS1B(&bb));
-            mid_white += MID_TABLE[pcx_idx][sq] + MaterialScore[pcx_idx];
-            end_white += END_TABLE[pcx_idx][sq] + MaterialScore[pcx_idx];
+            mid_white += MID_TABLE[pcx_idx][sq];
+            end_white += END_TABLE[pcx_idx][sq];
             game_phase += game_phase_table[pcx_idx];
         }
     }
@@ -42,8 +57,8 @@ fn pestoEval(board: *const Board) i32 {
         var bb = board.piece_bb[1][pcx_idx];
         while (bb != 0) {
             const sq = bitboard.removeLS1B(&bb);
-            mid_black += MID_TABLE[pcx_idx][sq] + MaterialScore[pcx_idx];
-            end_black += END_TABLE[pcx_idx][sq] + MaterialScore[pcx_idx];
+            mid_black += MID_TABLE[pcx_idx][sq];
+            end_black += END_TABLE[pcx_idx][sq];
             game_phase += game_phase_table[pcx_idx];
         }
     }
