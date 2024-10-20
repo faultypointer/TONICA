@@ -39,7 +39,7 @@ pub const Black_King_Castle = Move{ .data = 0b00000000001000000101111110111100 }
 pub const Black_Queen_Castle = Move{ .data = 0b00000000001000000101111010111100 };
 pub const Move = struct {
     data: u32,
-    score: u32 = 0,
+    score: i32 = 0,
 
     pub fn init(from: u6, to: u6, pce: PieceType) Move {
         var data: u32 = 0;
@@ -122,6 +122,7 @@ pub const Move = struct {
         const print = std.debug.print;
 
         print("Move Debug Info:\n", .{});
+        print("Move Score: {}\n", .{self.score});
         print("From: {any}\n", .{self.fromSquare()});
         print("To: {any}\n", .{self.toSquare()});
         print("Piece: {any}\n", .{self.piece()});
