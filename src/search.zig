@@ -16,6 +16,7 @@ pub const SearchResult = struct {
     best_move: Move,
     nodes_searched: u64,
     time: std.time.Timer,
+    ply: u8 = 0,
 };
 
 pub const SearchParams = struct {
@@ -27,78 +28,68 @@ pub const SearchParams = struct {
 };
 
 pub fn search(params: SearchParams) SearchResult {
-    const board = params.board;
-    const movgen = params.movgen;
     var result = SearchResult{
         .best_score = -0xffffff,
         .best_move = Move{
             .data = 0,
         },
         .nodes_searched = 0,
+        .ply = 0,
         .time = std.time.Timer.start() catch unreachable,
     };
-
-    var alpha: i32 = -0xffffff;
-    const beta: i32 = 0xffffff;
-
-    var movelist = movgen.generateMoves(board, MoveType.All);
-    for (2..params.depth + 1) |d| {
-        for (0..movelist.len) |i| {
-            result.nodes_searched += 1;
-            var move = &movelist.moves[i];
-            board.makeMove(move.*);
-            if (movgen.isInCheck(board, board.state.turn.opponent())) {
-                board.unMakeMove();
-                continue;
-            }
-            const dep: u8 = @truncate(d - 1);
-            var abparam = params;
-            abparam.depth = dep;
-            const score = -alphabeta(&abparam, &result, -beta, -alpha);
-            move.score = if (score < 0) @intCast(-score) else @intCast(score);
-            board.unMakeMove();
-            if (score > result.best_score) {
-                result.best_score = score;
-                result.best_move = move.*;
-            }
-
-            alpha = if (score > alpha) score else alpha;
-            if (alpha >= beta) break;
-        }
-        sort.sortMoveList(&movelist);
-    }
+    _ = alphabeta(params, &result, -0x7ffffff, 0x7ffffff, params.depth);
     return result;
 }
 
-fn alphabeta(params: *SearchParams, res: *SearchResult, A: i32, beta: i32) i32 {
+pub fn alphabeta(params: SearchParams, res: *SearchResult, A: i32, beta: i32, depth: u8) i32 {
     const board = params.board;
     const movgen = params.movgen;
-    res.nodes_searched += 1;
-    if (shouldTerminate(params, res)) { // or game draw?? over??
-        // TODO quiescence search
-        // params.depth = 1;
-        // return quiescence(params, res, A, beta, 10);
-        return eval.evaluatePosition(board);
-    }
-    params.depth -= 1;
     var alpha = A;
-    const movelist = movgen.generateMoves(board, MoveType.All);
+    res.nodes_searched += 1;
+
+    const in_check = movgen.isInCheck(board, board.state.turn);
+    var legal_moves: u8 = 0;
+    if (shouldTerminate(params, res) or depth == 0) { // or game draw?? over??
+        return eval.evaluatePosition(board);
+        // return quiescence(params, res, A, beta);
+    }
+    const movelist = movgen.generateMoves(board, .All);
     for (0..movelist.len) |i| {
+        res.ply += 1;
         const move = movelist.moves[i];
         board.makeMove(move);
         if (movgen.isInCheck(board, board.state.turn.opponent())) {
             board.unMakeMove();
+            res.ply -= 1;
             continue;
         }
-        const score = -alphabeta(params, res, -beta, -alpha);
+        legal_moves += 1;
+        const score = -alphabeta(params, res, -beta, -alpha, depth - 1);
+        res.ply -= 1;
+        if (res.ply == 0) {
+            move.debugPrint();
+            board.printBoard();
+            std.debug.print("score: {} depth: {}\n", .{ score, params.depth - depth });
+            _ = std.io.getStdIn().reader().readByte() catch unreachable;
+        }
         board.unMakeMove();
-        alpha = if (score > alpha) score else alpha;
-        if (alpha >= beta) break;
+        if (score >= beta) return beta;
+        if (score > alpha) {
+            alpha = score;
+            if (res.ply == 0) {
+                res.best_move = move;
+                res.best_score = score;
+            }
+        }
+    }
+    if (legal_moves == 0) {
+        if (in_check) return -0x1ffff + @as(i32, res.ply);
+        return 0;
     }
     return alpha;
 }
 
-fn quiescence(params: *SearchParams, res: *SearchResult, A: i32, beta: i32, qdepth: u8) i32 {
+fn quiescence(params: SearchParams, res: *SearchResult, A: i32, beta: i32) i32 {
     const board = params.board;
     const movgen = params.movgen;
     res.nodes_searched += 1;
@@ -106,7 +97,7 @@ fn quiescence(params: *SearchParams, res: *SearchResult, A: i32, beta: i32, qdep
     var alpha = A;
     if (stand_pat >= beta) return beta;
     if (stand_pat > alpha) alpha = stand_pat;
-    if (shouldTerminate(params, res) or qdepth == 0) {
+    if (shouldTerminate(params, res)) {
         return alpha;
     }
     const captures = movgen.generateMoves(board, MoveType.Capture);
@@ -116,7 +107,7 @@ fn quiescence(params: *SearchParams, res: *SearchResult, A: i32, beta: i32, qdep
             board.unMakeMove();
             continue;
         }
-        const score = -quiescence(params, res, -beta, -alpha, qdepth - 1);
+        const score = -quiescence(params, res, -beta, -alpha);
         board.unMakeMove();
         if (score >= beta) return beta;
         if (score > alpha) alpha = score;
@@ -124,8 +115,7 @@ fn quiescence(params: *SearchParams, res: *SearchResult, A: i32, beta: i32, qdep
     return alpha;
 }
 
-fn shouldTerminate(params: *SearchParams, res: *SearchResult) bool {
-    if (params.depth == 0) return true;
+fn shouldTerminate(params: SearchParams, res: *SearchResult) bool {
     if (params.time) |t| {
         if (res.time.read() >= t) return true;
     }
