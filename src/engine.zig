@@ -21,6 +21,8 @@ const UciCommands = enum {
     eval,
     search,
     play,
+    // bench commands
+    searchben,
 };
 pub const Engine = struct {
     board: Board,
@@ -55,6 +57,8 @@ pub const Engine = struct {
                 .eval => self.debugHandleEval(),
                 .search => self.debugHandleSearch(),
                 .play => self.debugPlay(),
+                // bench
+                .searchben => self.benchSearch(),
             };
             buffer_fbs.reset();
         }
@@ -151,9 +155,17 @@ pub const Engine = struct {
         const writer = buffer_fbs.writer();
         self.board.printBoard();
         while (true) {
+            try stdout.print("Playing: awaiting input...\n", .{});
             try stdin.streamUntilDelimiter(writer, '\n', buffer.len);
             const movestr = buffer_fbs.getWritten();
-            const move = try parse.parseUciMove(movestr, &self.board);
+            if (std.mem.eql(u8, movestr, "exit")) {
+                try stdout.print("Exiting play\n", .{});
+                return;
+            }
+            const move = parse.parseUciMove(movestr, &self.board) catch |err| {
+                try stdout.print("Invalid move: {s} Err: {}\n", .{ movestr, err });
+                continue;
+            };
             self.board.makeMove(move);
             self.board.printBoard();
             const res = sear.search(&self.board, &self.mg, 8);
@@ -161,6 +173,24 @@ pub const Engine = struct {
             self.board.makeMove(res.best_move);
             self.board.printBoard();
             buffer_fbs.reset();
+        }
+    }
+    // =================================== bench functions===================================
+    fn benchSearch(self: *Engine) !void {
+        try stdout.print("Benchmarking Search for position below\n", .{});
+        self.board.printBoard();
+        for (1..8) |depth| {
+            var move_string = [_]u8{ 0, 0, 0, 0, 0 };
+
+            const res = sear.search(&self.board, &self.mg, @intCast(depth));
+            if (res.best_move.data == 0) {
+                try stdout.print("bestmove 0000 at depth: {}\n", .{depth});
+                continue;
+            }
+            // std.debug.print("total node searched: {}\n", .{res.nodes_searched});
+            const has_promo = res.best_move.toUciString(&move_string);
+            const move = if (has_promo) move_string[0..] else move_string[0..4];
+            try stdout.print("Found Move {s} at depth {} after searching {} nodes\n", .{ move, depth, res.nodes_searched });
         }
     }
 };

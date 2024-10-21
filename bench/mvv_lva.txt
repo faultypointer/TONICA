@@ -1,0 +1,208 @@
+Benchmarking Search for position below
+  +---+---+---+---+---+---+---+---+
+8 | ♜ | ♞ | ♝ | ♛ | ♚ | ♝ | ♞ | ♜ |
+  +---+---+---+---+---+---+---+---+
+7 | p | p | p | p | p | p | p | p |
+  +---+---+---+---+---+---+---+---+
+6 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+5 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+4 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+3 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+2 | ♙ | ♙ | ♙ | ♙ | ♙ | ♙ | ♙ | ♙ |
+  +---+---+---+---+---+---+---+---+
+1 | ♖ | ♘ | ♗ | ♕ | ♔ | ♗ | ♘ | ♖ |
+  +---+---+---+---+---+---+---+---+
+    a   b   c   d   e   f   g   h
+Found Move b1c3 at depth 1 after searching 21 nodes
+Found Move b1c3 at depth 2 after searching 88 nodes
+Found Move b1c3 at depth 3 after searching 768 nodes
+Found Move b1c3 at depth 4 after searching 3773 nodes
+Found Move b1c3 at depth 5 after searching 35215 nodes
+Found Move b1c3 at depth 6 after searching 222278 nodes
+Found Move e2e4 at depth 7 after searching 2821245 nodes
+Benchmarking Search for position below
+  +---+---+---+---+---+---+---+---+
+8 | ♜ | ♞ | ♝ | ♛ | ♚ | ♝ | ♞ | ♜ |
+  +---+---+---+---+---+---+---+---+
+7 | p | p | p | p | p | p | p | p |
+  +---+---+---+---+---+---+---+---+
+6 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+5 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+4 |   |   |   |   | ♙ |   |   |   |
+  +---+---+---+---+---+---+---+---+
+3 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+2 | ♙ | ♙ | ♙ | ♙ |   | ♙ | ♙ | ♙ |
+  +---+---+---+---+---+---+---+---+
+1 | ♖ | ♘ | ♗ | ♕ | ♔ | ♗ | ♘ | ♖ |
+  +---+---+---+---+---+---+---+---+
+    a   b   c   d   e   f   g   h
+Found Move b8c6 at depth 1 after searching 23 nodes
+Found Move b8c6 at depth 2 after searching 154 nodes
+Found Move b8c6 at depth 3 after searching 1268 nodes
+Found Move g8f6 at depth 4 after searching 11533 nodes
+Found Move b8c6 at depth 5 after searching 118880 nodes
+Found Move b8c6 at depth 6 after searching 688607 nodes
+Found Move b8c6 at depth 7 after searching 5066675 nodes
+Benchmarking Search for position below
+  +---+---+---+---+---+---+---+---+
+8 | ♜ |   | ♝ | ♛ | ♚ | ♝ | ♞ | ♜ |
+  +---+---+---+---+---+---+---+---+
+7 | p | p | p | p | p | p | p | p |
+  +---+---+---+---+---+---+---+---+
+6 |   |   | ♞ |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+5 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+4 |   |   |   |   | ♙ |   |   |   |
+  +---+---+---+---+---+---+---+---+
+3 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+2 | ♙ | ♙ | ♙ | ♙ |   | ♙ | ♙ | ♙ |
+  +---+---+---+---+---+---+---+---+
+1 | ♖ | ♘ | ♗ | ♕ | ♔ | ♗ | ♘ | ♖ |
+  +---+---+---+---+---+---+---+---+
+    a   b   c   d   e   f   g   h
+Found Move b1c3 at depth 1 after searching 31 nodes
+Found Move b1c3 at depth 2 after searching 241 nodes
+Found Move b1c3 at depth 3 after searching 2757 nodes
+Found Move b1c3 at depth 4 after searching 18149 nodes
+Found Move g1f3 at depth 5 after searching 158600 nodes
+Found Move f1c4 at depth 6 after searching 1183174 nodes
+Found Move d2d4 at depth 7 after searching 10323647 nodes
+Benchmarking Search for position below
+  +---+---+---+---+---+---+---+---+
+8 | ♜ |   | ♝ | ♛ | ♚ | ♝ | ♞ | ♜ |
+  +---+---+---+---+---+---+---+---+
+7 | p | p | p | p | p | p | p | p |
+  +---+---+---+---+---+---+---+---+
+6 |   |   | ♞ |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+5 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+4 |   |   |   | ♙ | ♙ |   |   |   |
+  +---+---+---+---+---+---+---+---+
+3 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+2 | ♙ | ♙ | ♙ |   |   | ♙ | ♙ | ♙ |
+  +---+---+---+---+---+---+---+---+
+1 | ♖ | ♘ | ♗ | ♕ | ♔ | ♗ | ♘ | ♖ |
+  +---+---+---+---+---+---+---+---+
+    a   b   c   d   e   f   g   h
+Found Move g8f6 at depth 1 after searching 25 nodes
+Found Move d7d5 at depth 2 after searching 476 nodes
+Found Move d7d5 at depth 3 after searching 2277 nodes
+Found Move g8f6 at depth 4 after searching 20898 nodes
+Found Move d7d5 at depth 5 after searching 192416 nodes
+Found Move d7d5 at depth 6 after searching 1640619 nodes
+Found Move e7e6 at depth 7 after searching 11990777 nodes
+Benchmarking Search for position below
+  +---+---+---+---+---+---+---+---+
+8 | ♜ |   | ♝ | ♛ | ♚ | ♝ | ♞ | ♜ |
+  +---+---+---+---+---+---+---+---+
+7 | p | p | p |   | p | p | p | p |
+  +---+---+---+---+---+---+---+---+
+6 |   |   | ♞ |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+5 |   |   |   | p |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+4 |   |   |   | ♙ | ♙ |   |   |   |
+  +---+---+---+---+---+---+---+---+
+3 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+2 | ♙ | ♙ | ♙ |   |   | ♙ | ♙ | ♙ |
+  +---+---+---+---+---+---+---+---+
+1 | ♖ | ♘ | ♗ | ♕ | ♔ | ♗ | ♘ | ♖ |
+  +---+---+---+---+---+---+---+---+
+    a   b   c   d   e   f   g   h
+Found Move e4e5 at depth 1 after searching 124 nodes
+Found Move e4d5 at depth 2 after searching 188 nodes
+Found Move e4d5 at depth 3 after searching 1816 nodes
+Found Move e4d5 at depth 4 after searching 18365 nodes
+Found Move e4d5 at depth 5 after searching 106571 nodes
+Found Move e4d5 at depth 6 after searching 691175 nodes
+Found Move e4d5 at depth 7 after searching 3354172 nodes
+Benchmarking Search for position below
+  +---+---+---+---+---+---+---+---+
+8 | ♜ |   | ♝ | ♛ | ♚ | ♝ | ♞ | ♜ |
+  +---+---+---+---+---+---+---+---+
+7 | p | p | p |   | p | p | p | p |
+  +---+---+---+---+---+---+---+---+
+6 |   |   | ♞ |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+5 |   | ♗ |   | p |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+4 |   |   |   | ♙ | ♙ |   |   |   |
+  +---+---+---+---+---+---+---+---+
+3 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+2 | ♙ | ♙ | ♙ |   |   | ♙ | ♙ | ♙ |
+  +---+---+---+---+---+---+---+---+
+1 | ♖ | ♘ | ♗ | ♕ | ♔ |   | ♘ | ♖ |
+  +---+---+---+---+---+---+---+---+
+    a   b   c   d   e   f   g   h
+Found Move d5e4 at depth 1 after searching 26 nodes
+Found Move d5e4 at depth 2 after searching 129 nodes
+Found Move g8f6 at depth 3 after searching 1524 nodes
+Found Move d5e4 at depth 4 after searching 7463 nodes
+Found Move d5e4 at depth 5 after searching 82837 nodes
+Found Move d5e4 at depth 6 after searching 277619 nodes
+Found Move d5e4 at depth 7 after searching 2567990 nodes
+Benchmarking Search for position below
+  +---+---+---+---+---+---+---+---+
+8 | ♜ |   | ♝ | ♛ | ♚ | ♝ | ♞ | ♜ |
+  +---+---+---+---+---+---+---+---+
+7 | p | p | p |   | p | p | p | p |
+  +---+---+---+---+---+---+---+---+
+6 |   |   | ♞ |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+5 |   | ♗ |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+4 |   |   |   | ♙ | p |   |   |   |
+  +---+---+---+---+---+---+---+---+
+3 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+2 | ♙ | ♙ | ♙ |   |   | ♙ | ♙ | ♙ |
+  +---+---+---+---+---+---+---+---+
+1 | ♖ | ♘ | ♗ | ♕ | ♔ |   | ♘ | ♖ |
+  +---+---+---+---+---+---+---+---+
+    a   b   c   d   e   f   g   h
+Found Move b1c3 at depth 1 after searching 57 nodes
+Found Move d4d5 at depth 2 after searching 1055 nodes
+Found Move d4d5 at depth 3 after searching 4842 nodes
+Found Move d4d5 at depth 4 after searching 65579 nodes
+Found Move d4d5 at depth 5 after searching 270261 nodes
+Found Move d4d5 at depth 6 after searching 2484232 nodes
+Found Move d4d5 at depth 7 after searching 9374023 nodes
+Benchmarking Search for position below
+  +---+---+---+---+---+---+---+---+
+8 | ♜ |   | ♝ | ♛ | ♚ | ♝ | ♞ | ♜ |
+  +---+---+---+---+---+---+---+---+
+7 | p | p | p |   | p | p | p | p |
+  +---+---+---+---+---+---+---+---+
+6 |   |   | ♞ |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+5 |   | ♗ |   | ♙ |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+4 |   |   |   |   | p |   |   |   |
+  +---+---+---+---+---+---+---+---+
+3 |   |   |   |   |   |   |   |   |
+  +---+---+---+---+---+---+---+---+
+2 | ♙ | ♙ | ♙ |   |   | ♙ | ♙ | ♙ |
+  +---+---+---+---+---+---+---+---+
+1 | ♖ | ♘ | ♗ | ♕ | ♔ |   | ♘ | ♖ |
+  +---+---+---+---+---+---+---+---+
+    a   b   c   d   e   f   g   h
+Found Move a7a6 at depth 1 after searching 185 nodes
+Found Move a7a6 at depth 2 after searching 338 nodes
+Found Move a7a6 at depth 3 after searching 2921 nodes
+Found Move a7a6 at depth 4 after searching 13081 nodes
+Found Move a7a6 at depth 5 after searching 108874 nodes
+Found Move a7a6 at depth 6 after searching 288467 nodes
+Found Move a7a6 at depth 7 after searching 2724082 nodes
