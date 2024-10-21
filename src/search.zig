@@ -10,12 +10,23 @@ const Side = types.Side;
 const Board = @import("board.zig").Board;
 
 const MAX_DEPTH = 100;
+const MAX_PLY = 64;
 
+pub const KillerMoves = [2][MAX_PLY]?Move;
+pub const HistoryMoves = [12][64]i32;
 pub const SearchResult = struct {
     best_score: i32,
     best_move: Move,
     nodes_searched: u64,
+};
+
+pub const SearchRef = struct {
+    board: *Board,
+    mg: *MovGen,
+    res: *SearchResult,
     ply: u8 = 0,
+    killer_moves: KillerMoves,
+    history_moves: HistoryMoves,
 };
 
 pub fn search(board: *Board, mg: *MovGen, depth: u8) SearchResult {
@@ -25,62 +36,96 @@ pub fn search(board: *Board, mg: *MovGen, depth: u8) SearchResult {
             .data = 0,
         },
         .nodes_searched = 0,
+    };
+
+    var ref = SearchRef{
+        .board = board,
+        .mg = mg,
+        .killer_moves = undefined,
+        .history_moves = undefined,
+        .res = &result,
         .ply = 0,
     };
-    result.best_score = negamax(board, mg, &result, -0x7ffffff, 0x7ffffff, depth);
+    for (0..2) |i| {
+        for (0..MAX_PLY) |j| {
+            ref.killer_moves[i][j] = null;
+        }
+    }
+    for (0..12) |i| {
+        for (0..64) |j| {
+            ref.history_moves[i][j] = 0;
+        }
+    }
+    result.best_score = negamax(&ref, -0x7ffffff, 0x7ffffff, depth);
     return result;
 }
 
-fn negamax(board: *Board, mg: *const MovGen, res: *SearchResult, alpha: i32, beta: i32, depth: u8) i32 {
+fn negamax(ref: *SearchRef, alpha: i32, beta: i32, depth: u8) i32 {
+    const board = ref.board;
+    const mg = ref.mg;
+    const res = ref.res;
     var mut_alpha = alpha;
 
     if (depth == 0) {
-        return quiescence(board, mg, res, alpha, beta);
+        return quiescence(ref, alpha, beta);
     }
 
     const in_check = mg.isInCheck(board, board.state.turn);
     var legal_moves: u8 = 0;
     res.nodes_searched += 1;
     var movelist = mg.generateMoves(board, .All);
-    sort.scoreMoves(&movelist);
+    sort.scoreMoves(&movelist, ref);
     sort.sortMoveList(&movelist);
 
     for (0..movelist.len) |i| {
         const move = movelist.moves[i];
-        res.ply += 1;
+        ref.ply += 1;
         board.makeMove(move);
         // std.debug.print("available pseudo moves\n", .{});
         // board.printBoard();
         if (mg.isInCheck(board, board.state.turn.opponent())) {
             board.unMakeMove();
-            res.ply -= 1;
+            ref.ply -= 1;
             continue;
         }
         // std.debug.print("legal move\n", .{});
         // _ = std.io.getStdIn().reader().readByte() catch unreachable;
         legal_moves += 1;
-        const score = -negamax(board, mg, res, -beta, -mut_alpha, depth - 1);
+        const score = -negamax(ref, -beta, -mut_alpha, depth - 1);
         board.unMakeMove();
-        res.ply -= 1;
+        ref.ply -= 1;
 
-        if (score >= beta) return beta;
+        if (score >= beta) {
+            if (ref.killer_moves[0][ref.ply]) |prev_killer| {
+                ref.killer_moves[1][ref.ply] = prev_killer;
+            }
+            ref.killer_moves[0][ref.ply] = move;
+            return beta;
+        }
 
         if (score > mut_alpha) {
             mut_alpha = score;
-            if (res.ply == 0) {
+            var pcs_idx: usize = @intCast(@intFromEnum(move.piece()));
+            if (ref.board.state.turn == .Black) pcs_idx += 6;
+            const sq = @intFromEnum(move.toSquare());
+            ref.history_moves[pcs_idx][sq] += depth;
+            if (ref.ply == 0) {
                 res.best_move = move;
             }
         }
     }
     if (legal_moves == 0) {
-        if (in_check) return -0xffffff + @as(i32, res.ply);
+        if (in_check) return -0xffffff + @as(i32, ref.ply);
         return 0;
     }
 
     return mut_alpha;
 }
 
-fn quiescence(board: *Board, mg: *const MovGen, res: *SearchResult, alpha: i32, beta: i32) i32 {
+fn quiescence(ref: *SearchRef, alpha: i32, beta: i32) i32 {
+    const board = ref.board;
+    const mg = ref.mg;
+    const res = ref.res;
     var mut_alpha = alpha;
     res.nodes_searched += 1;
 
@@ -93,20 +138,20 @@ fn quiescence(board: *Board, mg: *const MovGen, res: *SearchResult, alpha: i32, 
     }
 
     var movelist = mg.generateMoves(board, .Capture);
-    sort.scoreMoves(&movelist);
+    sort.scoreMoves(&movelist, ref);
     sort.sortMoveList(&movelist);
     for (0..movelist.len) |i| {
         const move = movelist.moves[i];
-        res.ply += 1;
+        ref.ply += 1;
         board.makeMove(move);
         if (mg.isInCheck(board, board.state.turn.opponent())) {
             board.unMakeMove();
-            res.ply -= 1;
+            ref.ply -= 1;
             continue;
         }
-        const score = -quiescence(board, mg, res, -beta, -mut_alpha);
+        const score = -quiescence(ref, -beta, -mut_alpha);
         board.unMakeMove();
-        res.ply -= 1;
+        ref.ply -= 1;
 
         if (score >= beta) return beta;
 
