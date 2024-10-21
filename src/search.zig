@@ -10,12 +10,20 @@ const Side = types.Side;
 const Board = @import("board.zig").Board;
 
 const MAX_DEPTH = 100;
+const MAX_PLY = 64;
 
 pub const SearchResult = struct {
     best_score: i32,
     best_move: Move,
     nodes_searched: u64,
     ply: u8 = 0,
+};
+
+pub const SearchRef = struct {
+    board: *Board,
+    mg: *MovGen,
+    res: *SearchResult,
+    killer_moves: [2][MAX_PLY]?Move,
 };
 
 pub fn search(board: *Board, mg: *MovGen, depth: u8) SearchResult {
@@ -27,11 +35,26 @@ pub fn search(board: *Board, mg: *MovGen, depth: u8) SearchResult {
         .nodes_searched = 0,
         .ply = 0,
     };
-    result.best_score = negamax(board, mg, &result, -0x7ffffff, 0x7ffffff, depth);
+
+    var ref = SearchRef{
+        .board = board,
+        .mg = mg,
+        .killer_moves = undefined,
+        .res = &result,
+    };
+    for (0..2) |i| {
+        for (0..MAX_PLY) |j| {
+            ref.killer_moves[i][j] = null;
+        }
+    }
+    result.best_score = negamax(&ref, -0x7ffffff, 0x7ffffff, depth);
     return result;
 }
 
-fn negamax(board: *Board, mg: *const MovGen, res: *SearchResult, alpha: i32, beta: i32, depth: u8) i32 {
+fn negamax(ref: *SearchRef, alpha: i32, beta: i32, depth: u8) i32 {
+    const board = ref.board;
+    const mg = ref.mg;
+    const res = ref.res;
     var mut_alpha = alpha;
 
     if (depth == 0) {
@@ -59,7 +82,7 @@ fn negamax(board: *Board, mg: *const MovGen, res: *SearchResult, alpha: i32, bet
         // std.debug.print("legal move\n", .{});
         // _ = std.io.getStdIn().reader().readByte() catch unreachable;
         legal_moves += 1;
-        const score = -negamax(board, mg, res, -beta, -mut_alpha, depth - 1);
+        const score = -negamax(ref, -beta, -mut_alpha, depth - 1);
         board.unMakeMove();
         res.ply -= 1;
 
