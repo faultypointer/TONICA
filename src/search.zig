@@ -96,19 +96,23 @@ fn negamax(ref: *SearchRef, alpha: i32, beta: i32, depth: u8) i32 {
         ref.ply -= 1;
 
         if (score >= beta) {
-            if (ref.killer_moves[0][ref.ply]) |prev_killer| {
-                ref.killer_moves[1][ref.ply] = prev_killer;
+            if (!move.isCapture()) {
+                if (ref.killer_moves[0][ref.ply]) |prev_killer| {
+                    ref.killer_moves[1][ref.ply] = prev_killer;
+                }
+                ref.killer_moves[0][ref.ply] = move;
             }
-            ref.killer_moves[0][ref.ply] = move;
             return beta;
         }
 
         if (score > mut_alpha) {
             mut_alpha = score;
-            var pcs_idx: usize = @intCast(@intFromEnum(move.piece()));
-            if (ref.board.state.turn == .Black) pcs_idx += 6;
-            const sq = @intFromEnum(move.toSquare());
-            ref.history_moves[pcs_idx][sq] += depth;
+            if (!move.isCapture()) {
+                var pcs_idx: usize = @intCast(@intFromEnum(move.piece()));
+                if (ref.board.state.turn == .Black) pcs_idx += 6;
+                const sq = @intFromEnum(move.toSquare());
+                ref.history_moves[pcs_idx][sq] += depth;
+            }
             if (ref.ply == 0) {
                 res.best_move = move;
             }
