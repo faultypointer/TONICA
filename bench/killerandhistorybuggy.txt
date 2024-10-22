@@ -213,7 +213,7 @@ moves:
 position startpos moves e2e4
 position startpos moves e2e4 b8c6
 position startpos moves e2e4 b8c6 d2d4
-position startpos moves e2e4 b8c6 d2d4 d5d7
-position startpos moves e2e4 b8c6 d2d4 d5d7 f1b5
-position startpos moves e2e4 b8c6 d2d4 d5d7 f1b5 d5e4
-position startpos moves e2e4 b8c6 d2d4 d5d7 f1b5 d5e4 d4d5
+position startpos moves e2e4 b8c6 d2d4 d7d5
+position startpos moves e2e4 b8c6 d2d4 d7d5 f1b5
+position startpos moves e2e4 b8c6 d2d4 d7d5 f1b5 d5e4
+position startpos moves e2e4 b8c6 d2d4 d7d5 f1b5 d5e4 d4d5
