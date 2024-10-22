@@ -9,11 +9,11 @@ const Move = types.Move;
 const Side = types.Side;
 const Board = @import("board.zig").Board;
 
-const MAX_DEPTH = 100;
 const MAX_PLY = 64;
 
 pub const KillerMoves = [2][MAX_PLY]?Move;
 pub const HistoryMoves = [12][64]i32;
+pub const PVTable = [MAX_PLY][MAX_PLY]Move;
 pub const SearchResult = struct {
     best_score: i32,
     best_move: Move,
@@ -21,12 +21,15 @@ pub const SearchResult = struct {
 };
 
 pub const SearchRef = struct {
+    follow_pv: bool = false,
     board: *Board,
     mg: *MovGen,
     res: *SearchResult,
     ply: u8 = 0,
     killer_moves: KillerMoves,
     history_moves: HistoryMoves,
+    pv_table: PVTable,
+    pv_length: [MAX_PLY]usize,
 };
 
 pub fn search(board: *Board, mg: *MovGen, depth: u8) SearchResult {
@@ -43,6 +46,8 @@ pub fn search(board: *Board, mg: *MovGen, depth: u8) SearchResult {
         .mg = mg,
         .killer_moves = undefined,
         .history_moves = undefined,
+        .pv_table = undefined,
+        .pv_length = undefined,
         .res = &result,
         .ply = 0,
     };
@@ -56,7 +61,18 @@ pub fn search(board: *Board, mg: *MovGen, depth: u8) SearchResult {
             ref.history_moves[i][j] = 0;
         }
     }
-    result.best_score = negamax(&ref, -0x7ffffff, 0x7ffffff, depth);
+    for (0..MAX_PLY) |i| {
+        ref.pv_length[i] = 0;
+        for (0..MAX_PLY) |j| {
+            ref.pv_table[i][j] = Move{ .data = 0 };
+        }
+    }
+    for (1..depth + 1) |dep| {
+        ref.follow_pv = true;
+        const d: u8 = @intCast(dep);
+        result.best_score = negamax(&ref, -0x7ffffff, 0x7ffffff, d);
+    }
+    result.best_move = ref.pv_table[0][0];
     return result;
 }
 
@@ -65,9 +81,14 @@ fn negamax(ref: *SearchRef, alpha: i32, beta: i32, depth: u8) i32 {
     const mg = ref.mg;
     const res = ref.res;
     var mut_alpha = alpha;
+    ref.pv_length[ref.ply] = ref.ply;
 
     if (depth == 0) {
         return quiescence(ref, alpha, beta);
+    }
+
+    if (ref.ply > MAX_PLY - 1) {
+        return eval.evaluatePosition(board);
     }
 
     const in_check = mg.isInCheck(board, board.state.turn);
@@ -106,15 +127,17 @@ fn negamax(ref: *SearchRef, alpha: i32, beta: i32, depth: u8) i32 {
         }
 
         if (score > mut_alpha) {
+            ref.pv_table[ref.ply][ref.ply] = move;
+            for (ref.ply + 1..ref.pv_length[ref.ply + 1]) |next_ply| {
+                ref.pv_table[ref.ply][ref.ply + 1] = ref.pv_table[ref.ply + 1][next_ply];
+            }
+            ref.pv_length[ref.ply] = ref.pv_length[ref.ply + 1];
             mut_alpha = score;
             if (!move.isCapture()) {
                 var pcs_idx: usize = @intCast(@intFromEnum(move.piece()));
                 if (ref.board.state.turn == .Black) pcs_idx += 6;
                 const sq = @intFromEnum(move.toSquare());
                 ref.history_moves[pcs_idx][sq] += depth;
-            }
-            if (ref.ply == 0) {
-                res.best_move = move;
             }
         }
     }

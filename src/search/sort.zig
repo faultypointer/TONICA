@@ -17,23 +17,30 @@ fn lessThanMove(_: void, a: Move, b: Move) bool {
     return a.score > b.score;
 }
 
-pub fn scoreMoves(movelist: *MoveList, ref: *const SearchRef) void {
+pub fn scoreMoves(movelist: *MoveList, ref: *SearchRef) void {
+    const follow_pv = ref.follow_pv;
+    if (follow_pv) ref.follow_pv = false;
     for (0..movelist.len) |i| {
         const move = &movelist.moves[i];
-        // score capture moves
+        if (follow_pv) {
+            if (ref.pv_table[0][ref.ply].data == move.data) {
+                ref.follow_pv = true;
+                move.score = 20000;
+            }
+        }
         if (move.isCapture()) {
             assert(move.capturedPiece() != PieceType.None);
             const attacker = @intFromEnum(move.piece());
             const victim = @intFromEnum(move.capturedPiece());
-            move.score = MVVLVA[attacker][victim] + 10000;
+            move.score += MVVLVA[attacker][victim] + 10000;
         } else { // score quite moves
             if (ref.killer_moves[0][ref.ply]) |killer_move| {
                 if (killer_move.data == move.data) {
-                    move.score = 9000;
+                    move.score += 9000;
                 }
             } else if (ref.killer_moves[1][ref.ply]) |killer_move| {
                 if (killer_move.data == move.data) {
-                    move.score = 8000;
+                    move.score += 8000;
                 }
             } else {
                 var pcs_idx: usize = @intCast(@intFromEnum(move.piece()));
