@@ -120,7 +120,7 @@ pub const Engine = struct {
         _ = tokens;
         var move_string = [_]u8{ 0, 0, 0, 0, 0 };
 
-        const res = sear.search(&self.board, &self.mg, 8);
+        const res = sear.search(&self.board, &self.mg, 7);
         if (res.best_move.data == 0) {
             try stdout.print("bestmove 0000\n", .{});
         }
