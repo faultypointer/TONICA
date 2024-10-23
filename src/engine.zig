@@ -1,7 +1,6 @@
 const std = @import("std");
 const stdin = std.io.getStdIn().reader();
 const stdout = std.io.getStdOut().writer();
-const stderr = std.io.getStdErr().writer();
 const SplitIter = std.mem.SplitIterator(u8, .sequence);
 
 const Board = @import("board.zig").Board;
@@ -118,20 +117,10 @@ pub const Engine = struct {
         //     .movgen = &self.mg,
         //     .depth = 5,
         // };
-        var depth: u8 = 8;
-        while (tokens.next()) |opt| {
-            if (std.mem.eql(u8, opt, "depth")) {
-                if (tokens.next()) |val| {
-                    depth = std.fmt.parseInt(u8, val, 10) catch |err| blk: {
-                        try stderr.print("Cannot parse depth {s} using default {}\nErr: {}\n", .{ val, depth, err });
-                        break :blk depth;
-                    };
-                }
-            }
-        }
+        _ = tokens;
         var move_string = [_]u8{ 0, 0, 0, 0, 0 };
 
-        const res = sear.search(&self.board, &self.mg, depth);
+        const res = sear.search(&self.board, &self.mg, 7);
         if (res.best_move.data == 0) {
             try stdout.print("bestmove 0000\n", .{});
         }
