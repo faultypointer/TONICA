@@ -120,7 +120,7 @@ pub const Engine = struct {
         _ = tokens;
         var move_string = [_]u8{ 0, 0, 0, 0, 0 };
 
-        const res = sear.search(&self.board, &self.mg, 8);
+        const res = sear.search(&self.board, &self.mg, 7);
         if (res.best_move.data == 0) {
             try stdout.print("bestmove 0000\n", .{});
         }
@@ -179,7 +179,7 @@ pub const Engine = struct {
     fn benchSearch(self: *Engine) !void {
         try stdout.print("Benchmarking Search for position below\n", .{});
         self.board.printBoard();
-        for (1..8) |depth| {
+        for (1..10) |depth| {
             var move_string = [_]u8{ 0, 0, 0, 0, 0 };
 
             const res = sear.search(&self.board, &self.mg, @intCast(depth));

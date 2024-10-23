@@ -166,7 +166,7 @@ pub const MoveList = struct {
             .moves = undefined,
             .len = 0,
         };
-        for (0..100) |i| {
+        for (0..256) |i| {
             movelist.moves[i] = Move{ .data = 0 };
         }
         movelist.len = 0;
