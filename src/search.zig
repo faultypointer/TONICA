@@ -81,6 +81,7 @@ fn negamax(ref: *SearchRef, alpha: i32, beta: i32, depth: u8) i32 {
     const mg = ref.mg;
     const res = ref.res;
     var mut_alpha = alpha;
+    var found_pv = false;
     ref.pv_length[ref.ply] = ref.ply;
 
     if (depth == 0) {
@@ -102,15 +103,11 @@ fn negamax(ref: *SearchRef, alpha: i32, beta: i32, depth: u8) i32 {
         const move = movelist.moves[i];
         ref.ply += 1;
         board.makeMove(move);
-        // std.debug.print("available pseudo moves\n", .{});
-        // board.printBoard();
         if (mg.isInCheck(board, board.state.turn.opponent())) {
             board.unMakeMove();
             ref.ply -= 1;
             continue;
         }
-        // std.debug.print("legal move\n", .{});
-        // _ = std.io.getStdIn().reader().readByte() catch unreachable;
         legal_moves += 1;
         const score = -negamax(ref, -beta, -mut_alpha, depth - 1);
         board.unMakeMove();
