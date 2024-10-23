@@ -109,7 +109,15 @@ fn negamax(ref: *SearchRef, alpha: i32, beta: i32, depth: u8) i32 {
             continue;
         }
         legal_moves += 1;
-        const score = -negamax(ref, -beta, -mut_alpha, depth - 1);
+        var score: i32 = 0;
+        if (found_pv) {
+            score = -negamax(ref, -mut_alpha - 1, -mut_alpha, depth - 1);
+            if ((score > mut_alpha) and (score < beta)) {
+                score = -negamax(ref, -beta, -mut_alpha, depth - 1);
+            }
+        } else {
+            score = -negamax(ref, -beta, -mut_alpha, depth - 1);
+        }
         board.unMakeMove();
         ref.ply -= 1;
 
@@ -124,6 +132,8 @@ fn negamax(ref: *SearchRef, alpha: i32, beta: i32, depth: u8) i32 {
         }
 
         if (score > mut_alpha) {
+            found_pv = true;
+
             ref.pv_table[ref.ply][ref.ply] = move;
             for (ref.ply + 1..ref.pv_length[ref.ply + 1]) |next_ply| {
                 ref.pv_table[ref.ply][ref.ply + 1] = ref.pv_table[ref.ply + 1][next_ply];
