@@ -161,6 +161,22 @@ pub const Board = struct {
         self.state.turn = self.state.turn.opponent();
     }
 
+    pub fn makeNullMove(self: *Board) void {
+        var current_state = self.state;
+        current_state.next_move = null;
+        self.state_stack.push(current_state);
+
+        const us = current_state.turn;
+
+        self.state.half_move_clock += 1;
+        if (us == Side.Black) self.state.full_move_clock += 1;
+        self.state.en_passant = null;
+        self.state.turn = self.state.turn.opponent();
+    }
+    pub fn unMakeNullMove(self: *Board) void {
+        self.state = self.state_stack.pop();
+    }
+
     pub fn unMakeMove(self: *Board) void {
         self.state = self.state_stack.pop();
         const last_move = self.state.next_move.?;

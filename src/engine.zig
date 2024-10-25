@@ -118,7 +118,7 @@ pub const Engine = struct {
         //     .movgen = &self.mg,
         //     .depth = 5,
         // };
-        var depth: u8 = 8;
+        var depth: u8 = 10;
         while (tokens.next()) |opt| {
             if (std.mem.eql(u8, opt, "depth")) {
                 if (tokens.next()) |val| {
