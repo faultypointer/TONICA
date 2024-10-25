@@ -97,6 +97,12 @@ fn negamax(ref: *SearchRef, alpha: i32, beta: i32, depth: u8) i32 {
     const in_check = mg.isInCheck(board, board.state.turn);
     var legal_moves: u8 = 0;
     res.nodes_searched += 1;
+    if (!in_check and (depth >= 3) and (ref.ply > 0)) {
+        board.makeNullMove();
+        const score = -negamax(ref, -beta, -beta + 1, depth - 1 - 2);
+        board.unMakeNullMove();
+        if (score >= beta) return beta;
+    }
     var movelist = mg.generateMoves(board, .All);
     sort.scoreMoves(&movelist, ref);
     sort.sortMoveList(&movelist);
