@@ -10,8 +10,6 @@ const Side = types.Side;
 const Board = @import("board.zig").Board;
 
 const MAX_PLY = 64;
-const FULL_MOVE_SEARCH = 4;
-const REDUCTION_LIMIT = 3;
 
 pub const KillerMoves = [2][MAX_PLY]?Move;
 pub const HistoryMoves = [12][64]i32;
@@ -101,12 +99,11 @@ fn negamax(ref: *SearchRef, alpha: i32, beta: i32, depth: u8) i32 {
     sort.scoreMoves(&movelist, ref);
     sort.sortMoveList(&movelist);
 
-    var move_searched: usize = 0;
     for (0..movelist.len) |i| {
         const move = movelist.moves[i];
         ref.ply += 1;
         board.makeMove(move);
-        if (mg.isInCheck(board, board.state.turn.opponent())) {
+        if (in_check) {
             board.unMakeMove();
             ref.ply -= 1;
             continue;
