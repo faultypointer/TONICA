@@ -69,10 +69,19 @@ pub fn search(board: *Board, mg: *MovGen, depth: u8) SearchResult {
             ref.pv_table[i][j] = Move{ .data = 0 };
         }
     }
+    var alpha: i32 = -0x7ffffff;
+    var beta: i32 = 0x7ffffff;
     for (1..depth + 1) |dep| {
         ref.follow_pv = true;
         const d: u8 = @intCast(dep);
-        result.best_score = negamax(&ref, -0x7ffffff, 0x7ffffff, d);
+        const score = negamax(&ref, alpha, beta, d);
+        if ((score <= alpha) or (score >= beta)) {
+            alpha = -0x7ffffff;
+            beta = 0x7ffffff;
+            continue;
+        }
+        alpha = score - 50;
+        beta = score + 50;
     }
     result.best_move = ref.pv_table[0][0];
     return result;
