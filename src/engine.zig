@@ -131,7 +131,7 @@ pub const Engine = struct {
         }
         var move_string = [_]u8{ 0, 0, 0, 0, 0 };
 
-        const res = sear.search(&self.board, &self.mg, depth);
+        const res = sear.search(&self.board, &self.mg, depth, null, null);
         if (res.best_move.data == 0) {
             try stdout.print("bestmove 0000\n", .{});
         }
@@ -150,7 +150,7 @@ pub const Engine = struct {
         for (1..6) |depth| {
             var move_string = [_]u8{ 0, 0, 0, 0, 0 };
 
-            const res = sear.search(&self.board, &self.mg, @intCast(depth));
+            const res = sear.search(&self.board, &self.mg, @intCast(depth), null, null);
             if (res.best_move.data == 0) {
                 try stdout.print("bestmove 0000 at depth: {}\n", .{depth});
                 continue;
@@ -179,7 +179,7 @@ pub const Engine = struct {
             };
             self.board.makeMove(move);
             self.board.printBoard();
-            const res = sear.search(&self.board, &self.mg, 8);
+            const res = sear.search(&self.board, &self.mg, 8, 5e9, 1_000_000);
             try stdout.print("playing move with score {} after searching nodes: {}\n", .{ res.best_score, res.nodes_searched });
             self.board.makeMove(res.best_move);
             self.board.printBoard();
@@ -193,7 +193,7 @@ pub const Engine = struct {
         for (1..10) |depth| {
             var move_string = [_]u8{ 0, 0, 0, 0, 0 };
 
-            const res = sear.search(&self.board, &self.mg, @intCast(depth));
+            const res = sear.search(&self.board, &self.mg, @intCast(depth), null, null);
             if (res.best_move.data == 0) {
                 try stdout.print("bestmove 0000 at depth: {}\n", .{depth});
                 continue;

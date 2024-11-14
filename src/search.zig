@@ -34,7 +34,7 @@ pub const SearchRef = struct {
     pv_length: [MAX_PLY]usize,
 };
 
-pub fn search(board: *Board, mg: *MovGen, depth: u8) SearchResult {
+pub fn search(board: *Board, mg: *MovGen, depth: u8, stime: ?u64, snodes: ?u64) SearchResult {
     var result = SearchResult{
         .best_score = -0xffffff,
         .best_move = Move{
@@ -69,10 +69,17 @@ pub fn search(board: *Board, mg: *MovGen, depth: u8) SearchResult {
             ref.pv_table[i][j] = Move{ .data = 0 };
         }
     }
+    var search_timer = std.time.Timer.start() catch unreachable;
     for (1..depth + 1) |dep| {
         ref.follow_pv = true;
         const d: u8 = @intCast(dep);
         result.best_score = negamax(&ref, -0x7ffffff, 0x7ffffff, d);
+        if (stime) |st| {
+            if (st <= search_timer.read()) break;
+        }
+        if (snodes) |sn| {
+            if (sn <= ref.res.nodes_searched) break;
+        }
     }
     result.best_move = ref.pv_table[0][0];
     return result;
